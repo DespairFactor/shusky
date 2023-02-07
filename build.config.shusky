@@ -63,10 +63,8 @@ private/google-modules/amplifiers/cs40l26
 private/google-modules/bms
 private/google-modules/display
 private/devices/google/shusky/display
-private/google-modules/edgetpu/rio/drivers/edgetpu
 private/google-modules/gpu/mali_kbase
 private/google-modules/gpu/mali_pixel
-private/google-modules/gxp/zuma
 private/google-modules/lwis
 private/google-modules/nfc
 private/google-modules/touch/common
@@ -75,7 +73,6 @@ private/google-modules/touch/goodix
 private/google-modules/touch/sec
 private/google-modules/video/gchips
 private/google-modules/power/reset
-private/google-modules/wlan/bcm4398
 private/google-modules/bluetooth/broadcom
 private/google-modules/gps/broadcom/bcm47765
 "
