@@ -5,7 +5,9 @@
  * Copyright (c) 2022 Google LLC
  */
 
+#include <drm/display/drm_dsc_helper.h>
 #include <drm/drm_vblank.h>
+#include <linux/debugfs.h>
 #include <linux/module.h>
 #include <linux/of_platform.h>
 #include <video/mipi_display.h>
@@ -463,12 +465,31 @@ static bool shoreline_is_mode_seamless(const struct exynos_panel *ctx,
 	return drm_mode_equal_no_clocks(&ctx->current_mode->mode, &pmode->mode);
 }
 
-static void shoreline_panel_init(struct exynos_panel *ctx)
+static void shoreline_debugfs_init(struct drm_panel *panel, struct dentry *root)
 {
-	struct dentry *csroot = ctx->debugfs_cmdset_entry;
+	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
+	struct dentry *panel_root, *csroot;
+
+	if (!ctx)
+		return;
+
+	panel_root = debugfs_lookup("panel", root);
+	if (!panel_root)
+		return;
+
+	csroot = debugfs_lookup("cmdsets", panel_root);
+	dput(panel_root);
+	if (!csroot) {
+		return;
+	}
 
 	exynos_panel_debugfs_create_cmdset(ctx, csroot,
 					   &shoreline_init_cmd_set, "init");
+	dput(csroot);
+}
+
+static void shoreline_panel_init(struct exynos_panel *ctx)
+{
 	shoreline_lhbm_gamma_read(ctx);
 	shoreline_lhbm_gamma_write(ctx);
 
@@ -617,6 +638,7 @@ static const struct drm_panel_funcs shoreline_drm_funcs = {
 	.prepare = exynos_panel_prepare,
 	.enable = shoreline_enable,
 	.get_modes = exynos_panel_get_modes,
+	.debugfs_init = shoreline_debugfs_init,
 };
 
 static const struct exynos_panel_funcs shoreline_exynos_funcs = {

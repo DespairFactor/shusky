@@ -606,11 +606,31 @@ static const struct exynos_panel_mode bigsurf_lp_mode = {
 	}
 };
 
-static void bigsurf_panel_init(struct exynos_panel *ctx)
+static void bigsurf_debugfs_init(struct drm_panel *panel, struct dentry *root)
 {
-	struct dentry *csroot = ctx->debugfs_cmdset_entry;
+	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
+	struct dentry *panel_root, *csroot;
+
+	if (!ctx)
+		return;
+
+	panel_root = debugfs_lookup("panel", root);
+	if (!panel_root)
+		return;
+
+	csroot = debugfs_lookup("cmdsets", panel_root);
+	if (!csroot) {
+		goto panel_out;
+	}
 
 	exynos_panel_debugfs_create_cmdset(ctx, csroot, &bigsurf_init_cmd_set, "init");
+	dput(csroot);
+panel_out:
+	dput(panel_root);
+}
+
+static void bigsurf_panel_init(struct exynos_panel *ctx)
+{
 	bigsurf_dimming_frame_setting(ctx, BIGSURF_DIMMING_FRAME);
 }
 
@@ -631,6 +651,7 @@ static const struct drm_panel_funcs bigsurf_drm_funcs = {
 	.prepare = exynos_panel_prepare,
 	.enable = bigsurf_enable,
 	.get_modes = exynos_panel_get_modes,
+	.debugfs_init = bigsurf_debugfs_init,
 };
 
 static const struct exynos_panel_funcs bigsurf_exynos_funcs = {
