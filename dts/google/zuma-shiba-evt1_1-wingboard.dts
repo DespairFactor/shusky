@@ -10,14 +10,15 @@
 
 #include "zuma-shiba-common.dtsi"
 #include "zuma-shusky-wcharger.dtsi"
+#include "zuma-shiba-camera-wingboard.dtsi"
 
 / {
 	board_id = <0x40303>;
-	board_rev = <0x010001>;
+	board_rev = <0x010104>;
 	fragment@boardbase {
 		target-path = "/";
 		__overlay__ {
-			model = "ZUMA SHIBA EVT 1.0 B0 based on ZUMA";
+			model = "ZUMA SHIBA EVT 1.1 Wingboard based on ZUMA";
 			compatible = "google,ZUMA SHIBA", "google,ZUMA";
 		};
 	};

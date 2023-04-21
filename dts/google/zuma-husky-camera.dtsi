@@ -151,11 +151,11 @@
 };
 
 &pinctrl_2 {
-        ldaf_irq: ldaf-irq {
-                samsung,pins = "gpa5-4"; /* XEINT_4 */
-                samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
-                samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
-        };
+	ldaf_irq: ldaf-irq {
+		samsung,pins = "gpa5-4"; /* XEINT_4 */
+		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+	};
 };
 
 &hsi2c_1 {
@@ -276,17 +276,17 @@
 
 				/* Power up sequence */
 				power-up-seqs =
+					"ldo1",
 					"enable",
 					"ldo8",
 					"s2mpg15_ldo26",
 					"s2mpg15_ldo12",
-					"ldo1",
 					"ldo4",
 					"reset",
 					"mclk_on";
 				power-up-seq-types =
-					"gpio",
 					"regulator",
+					"gpio",
 					"regulator",
 					"regulator",
 					"regulator",
@@ -294,9 +294,9 @@
 					"gpio",
 					"pinctrl";
 				power-up-seq-delays-us =
-					<500
-					 1000
-					 0
+					<10
+					 10
+					 10
 					 0
 					 0
 					 2000
@@ -308,11 +308,11 @@
 					"mclk_off",
 					"reset",
 					"ldo4",
-					"ldo1",
 					"s2mpg15_ldo12",
 					"s2mpg15_ldo26",
 					"ldo8",
-					"enable";
+					"enable",
+					"ldo1";
 				power-down-seq-types =
 					"pinctrl",
 					"gpio",
@@ -320,8 +320,8 @@
 					"regulator",
 					"regulator",
 					"regulator",
-					"regulator",
-					"gpio";
+					"gpio",
+					"regulator";
 				power-down-seq-delays-us =
 					<1000
 					 1000
@@ -334,6 +334,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <0>;
 			};
 
 			/* FRONT CAMERA DOKKAEBI */
@@ -424,6 +426,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <1>;
 			};
 
 
@@ -519,8 +523,20 @@
 					 0
 					 1000>;
 
+				/* resume sequence */
+				resume-seqs = "reset";
+				resume-seq-types = "gpio";
+				resume-seq-delays-us = <7600>;
+
+				/* suspend sequence */
+				suspend-seqs = "reset";
+				suspend-seq-types = "gpio";
+				suspend-seq-delays-us = <0>;
+
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <2>;
 			};
 
 			/* REAR Folded Tele Camera KRAKEN */
@@ -615,6 +631,11 @@
 					 0
 					 0
 					 0>;
+
+				/* Thread priority */
+				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <3>;
 			};
 
 			/* EEPROM DJINN for BOITATA*/
@@ -658,6 +679,8 @@
 					<1000
 					 0
 					 1000>;
+
+				i2c-lock-group-id = <0>;
 			};
 
 			/* EEPROM SMAUG for DOKKAEBI */
@@ -693,6 +716,8 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+
+				i2c-lock-group-id = <1>;
 			};
 
 			/* EEPROM SMAUG for OKSOKO */
@@ -728,6 +753,8 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+
+				i2c-lock-group-id = <2>;
 			};
 
 			/* EEPROM HUMBABA for KRAKEN */
@@ -782,6 +809,8 @@
 					 1000
 					 1000
 					 0>;
+
+				i2c-lock-group-id = <3>;
 			};
 
 			/* Actuator CORNERFOLK for BOITATA */
@@ -834,6 +863,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Actuator CORNERFOLK for OKSOKO */
@@ -879,6 +910,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <2>;
 			};
 
 			/* Actuator CORNERFOLK for DOKKAEBI */
@@ -933,6 +966,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <1>;
 			};
 
 			/* OIS DJINN for BOITATA*/
@@ -992,6 +1027,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <0>;
 			};
 
 			/* OIS HUMBABA for KRAKEN */
@@ -1053,6 +1090,8 @@
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
+
+				i2c-lock-group-id = <3>;
 			};
 
 			flash0: flash@0 {
@@ -1145,6 +1184,8 @@
 					<1000
 					 0
 					 0>;
+
+				i2c-lock-group-id = <0>;
 			};
 		};
 	};

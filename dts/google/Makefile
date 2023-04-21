@@ -16,9 +16,20 @@ shusky_overlays := \
 	zuma-shiba-evt1.dtbo \
 	zuma-shiba-evt1_b0.dtbo \
 	zuma-shiba-evt1_1.dtbo \
+	zuma-shiba-evt1_1-wingboard.dtbo \
 	zuma-shiba-dvt1.dtbo \
 	zuma-shiba-pvt1.dtbo \
 	zuma-shiba-mp.dtbo
+
+# DPM overlays
+shusky_overlays += \
+	../google-dts-base/zuma-dpm-eng.dtbo \
+	../google-dts-base/zuma-dpm-userdebug.dtbo \
+	../google-dts-base/zuma-dpm-user.dtbo
+
+DTC_FLAGS_zuma-dpm-eng += -a 4096
+DTC_FLAGS_zuma-dpm-user += -a 4096
+DTC_FLAGS_zuma-dpm-userdebug += -a 4096
 
 shusky_dtbs := \
 	../google-dts-base/zuma-a0-foplp.dtb \
