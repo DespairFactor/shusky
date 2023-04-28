@@ -363,7 +363,7 @@ lto_dependant_kernel_module(
     ],
     kernel_build = "//private/google-modules/soc/gs:gs_kernel_build",
     lto_outs = [
-        # "drivers/ufs/ufs-pixel-fips140.ko",
+        "drivers/ufs/ufs-pixel-fips140.ko",
     ],
     makefile = ["//private/google-modules/soc/gs:Makefile"],
     visibility = [
