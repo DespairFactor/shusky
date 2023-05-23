@@ -13,7 +13,8 @@ KLEAF=${KLEAF:-1}
 
 # Set KLEAF=1 to build with kleaf. This ignores all other command line options.
 if [ "${KLEAF}" = "1" ]; then
-  exec tools/bazel run --config=shusky --config=fast //private/devices/google/shusky:zuma_shusky_dist "$@"
+  # --config=pixel_debug_common to disable symbol checking during zuma-6.1 development.
+  exec tools/bazel run --config=shusky --config=fast --config=pixel_debug_common  //private/devices/google/shusky:zuma_shusky_dist "$@"
 fi
 
 cat <<- EOF
