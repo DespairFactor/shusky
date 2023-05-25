@@ -291,7 +291,7 @@
 
 		trips {
 			ocp_cpu1:ocp-cpu1 {
-				temperature = <B3M_UPPER_LIMIT>;
+				temperature = <CPU1_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -319,7 +319,7 @@
 
 		trips {
 			soft_ocp_cpu1:soft-ocp-cpu1 {
-				temperature = <B3M_UPPER_LIMIT>;
+				temperature = <CPU1_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -333,7 +333,7 @@
 
 		trips {
 			soft_ocp_cpu2:soft-ocp-cpu2 {
-				temperature = <B2M_UPPER_LIMIT>;
+				temperature = <CPU2_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -347,7 +347,7 @@
 
 		trips {
 			ocp_tpu:ocp-tpu{
-				temperature = <B7M_UPPER_LIMIT>;
+				temperature = <TPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -361,7 +361,7 @@
 
 		trips {
 			soft_ocp_tpu:soft-ocp-tpu {
-				temperature = <B7M_UPPER_LIMIT>;
+				temperature = <TPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -375,7 +375,7 @@
 
 		trips {
 			ocp_gpu:ocp-gpu{
-				temperature = <B2S_UPPER_LIMIT>;
+				temperature = <GPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -389,7 +389,7 @@
 
 		trips {
 			soft_ocp_gpu:soft-ocp-gpu {
-				temperature = <B2S_UPPER_LIMIT>;
+				temperature = <GPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
