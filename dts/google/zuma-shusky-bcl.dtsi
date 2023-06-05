@@ -46,6 +46,7 @@
 				cpu1_clkdivstep = <0x1>;
 				cpu0_clkdivstep = <0x1>;
 				aur_clkdivstep = <0x1>;
+				irq_enable_delay = <50>;
 				odpm_ratio = <3>;
 				gpios = <&gpa9 5 0>,		/* VDROOP1 */
 					<&gpa9 6 0>,		/* VDROOP2 */
@@ -91,58 +92,58 @@
 				};
 				freq_qos {
 					batoilo {
-						cpucl0 = <1475000>;
-						cpucl1 = <1549000>;
-						cpucl2 = <2147000>;
+						cpucl0 = <1704000>;
+						cpucl1 = <1945000>;
+						cpucl2 = <2294000>;
+						gpu = <723000>;
+						tpu = <845000>;
+					};
+					vdroop1 {
+						cpucl0 = <1704000>;
+						cpucl1 = <1945000>;
+						cpucl2 = <2294000>;
+						gpu = <890000>;
+						tpu = <845000>;
+					};
+					vdroop2 {
+						cpucl0 = <1704000>;
+						cpucl1 = <1945000>;
+						cpucl2 = <2294000>;
 						gpu = <649000>;
 						tpu = <627000>;
 					};
-					vdroop1 {
-						cpucl0 = <1475000>;
-						cpucl1 = <1549000>;
-						cpucl2 = <2147000>;
-						gpu = <723000>;
-						tpu = <627000>;
-					};
-					vdroop2 {
-						cpucl0 = <1475000>;
-						cpucl1 = <1549000>;
-						cpucl2 = <2147000>;
-						gpu = <580000>;
-						tpu = <455000>;
-					};
 					smpl_gm {
-						cpucl0 = <1475000>;
-						cpucl1 = <1549000>;
-						cpucl2 = <2147000>;
+						cpucl0 = <1704000>;
+						cpucl1 = <1945000>;
+						cpucl2 = <2294000>;
 						gpu = <649000>;
 						tpu = <627000>;
 					};
 					ocp_cpu2 {
-						cpucl0 = <2147000>;
-						cpucl1 = <2450000>;
-						cpucl2 = <3015000>;
+						cpucl0 = <1704000>;
+						cpucl1 = <2367000>;
+						cpucl2 = <2914000>;
 						gpu = <890000>;
 						tpu = <1119000>;
 					};
 					ocp_cpu1 {
-						cpucl0 = <2147000>;
-						cpucl1 = <2450000>;
-						cpucl2 = <3015000>;
+						cpucl0 = <1704000>;
+						cpucl1 = <2367000>;
+						cpucl2 = <2914000>;
 						gpu = <890000>;
 						tpu = <1119000>;
 					};
 					ocp_gpu {
-						cpucl0 = <2147000>;
-						cpucl1 = <2450000>;
-						cpucl2 = <3015000>;
+						cpucl0 = <1704000>;
+						cpucl1 = <2367000>;
+						cpucl2 = <2914000>;
 						gpu = <890000>;
 						tpu = <1119000>;
 					};
 					ocp_tpu {
-						cpucl0 = <2147000>;
-						cpucl1 = <2450000>;
-						cpucl2 = <3015000>;
+						cpucl0 = <1704000>;
+						cpucl1 = <2367000>;
+						cpucl2 = <2914000>;
 						gpu = <890000>;
 						tpu = <1119000>;
 					};
@@ -291,7 +292,7 @@
 
 		trips {
 			ocp_cpu1:ocp-cpu1 {
-				temperature = <B3M_UPPER_LIMIT>;
+				temperature = <CPU1_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -319,7 +320,7 @@
 
 		trips {
 			soft_ocp_cpu1:soft-ocp-cpu1 {
-				temperature = <B3M_UPPER_LIMIT>;
+				temperature = <CPU1_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -333,7 +334,7 @@
 
 		trips {
 			soft_ocp_cpu2:soft-ocp-cpu2 {
-				temperature = <B2M_UPPER_LIMIT>;
+				temperature = <CPU2_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -347,7 +348,7 @@
 
 		trips {
 			ocp_tpu:ocp-tpu{
-				temperature = <B7M_UPPER_LIMIT>;
+				temperature = <TPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -361,7 +362,7 @@
 
 		trips {
 			soft_ocp_tpu:soft-ocp-tpu {
-				temperature = <B7M_UPPER_LIMIT>;
+				temperature = <TPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -375,7 +376,7 @@
 
 		trips {
 			ocp_gpu:ocp-gpu{
-				temperature = <B2S_UPPER_LIMIT>;
+				temperature = <GPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
@@ -389,7 +390,7 @@
 
 		trips {
 			soft_ocp_gpu:soft-ocp-gpu {
-				temperature = <B2S_UPPER_LIMIT>;
+				temperature = <GPU_UPPER_LIMIT>;
 				hysteresis = <THERMAL_HYST_LEVEL>;
 				type = "passive";
 			};
