@@ -121,6 +121,10 @@
 	max77759,psy-name = "main-charger";
 };
 
+&max77779_chg {
+	max77779,psy-name = "main-charger";
+};
+
 &hsi2c_11 {
 
 	#address-cells = <1>;
