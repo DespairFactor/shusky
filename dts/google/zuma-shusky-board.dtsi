@@ -16,4 +16,4 @@
 #include "zuma-shusky-gsa-gsc.dtsi"
 #include "zuma-shusky-sbbm.dtsi"
 #include "zuma-shusky-pcie.dtsi"
-
+#include "../google-dts-base/gs101-cp-s5200-thermal-zone.dtsi"
