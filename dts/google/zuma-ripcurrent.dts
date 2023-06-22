@@ -41,6 +41,7 @@
 #include "zuma-ripcurrent-bcl.dtsi"
 #include "zuma-ripcurrent-bluetooth.dtsi"
 #include "zuma-ripcurrent-bluetooth-offmode.dtsi"
+#include "../google-dts-base/zuma-typec.dtsi"
 #include "zuma-ripcurrent-typec.dtsi"
 #include "../google-dts-base/gs101-cp-s5200-thermal-zone.dtsi"
 
