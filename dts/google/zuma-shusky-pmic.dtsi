@@ -47,6 +47,8 @@
 &m_ldo22_reg {
 	schematic-name = "L22M_DISP";
 	subsys-name = "Display";
+	regulator-always-on;
+	regulator-initial-mode = <SEC_OPMODE_ON>;
 };
 
 &m_ldo25_reg {
@@ -67,6 +69,8 @@
 &s_ldo15_reg {
 	schematic-name = "L15S_UDFPS_AVDD";
 	subsys-name = "FPS";
+	regulator-always-on;
+	regulator-initial-mode = <SEC_OPMODE_ON>;
 };
 
 &s_ldo20_reg {
