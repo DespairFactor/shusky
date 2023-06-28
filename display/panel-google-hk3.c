@@ -17,8 +17,8 @@
 #include <linux/thermal.h>
 #include <video/mipi_display.h>
 
-#include "include/trace/dpu_trace.h"
-#include "include/trace/panel_trace.h"
+#include "trace/dpu_trace.h"
+#include "trace/panel_trace.h"
 #include "panel/panel-samsung-drv.h"
 
 /**

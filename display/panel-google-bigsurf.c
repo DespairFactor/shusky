@@ -14,7 +14,7 @@
 #include <linux/of_platform.h>
 #include <video/mipi_display.h>
 
-#include "include/trace/dpu_trace.h"
+#include "trace/dpu_trace.h"
 #include "panel/panel-samsung-drv.h"
 
 #define BIGSURF_DDIC_ID_LEN 8
