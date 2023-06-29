@@ -242,6 +242,7 @@ kernel_build(
         "//private/google-modules/soc/gs:gki_aosp": "//aosp:android/abi_gki_aarch64_pixel",
         "//private/google-modules/soc/gs:gki_aosp_staging": "//aosp-staging:android/abi_gki_aarch64_pixel",
     }),
+    make_goals = _PIXEL_MAKE_GOALS,
     module_outs = [
         # keep sorted
         "drivers/i2c/i2c-dev.ko",
@@ -256,7 +257,6 @@ kernel_build(
         "net/wireless/cfg80211.ko",
     ],
     strip_modules = True,
-    make_goals = _PIXEL_MAKE_GOALS,
 )
 
 kernel_abi(
@@ -303,7 +303,7 @@ lto_dependant_kernel_module(
         "drivers/iommu/samsung-secure-iova.ko",
         "drivers/iommu/samsung_iommu_v9.ko",
         "drivers/media/platform/exynos/mfc/exynos_mfc.ko",
-        # "drivers/media/platform/exynos/smfc/smfc.ko",
+        "drivers/media/platform/exynos/smfc/smfc.ko",
         "drivers/mfd/s2mpg14-mfd.ko",
         "drivers/mfd/s2mpg1415-gpio.ko",
         "drivers/mfd/s2mpg15-mfd.ko",
