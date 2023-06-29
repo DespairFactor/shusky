@@ -7,6 +7,7 @@ load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
 load("//build/kernel/kleaf:constants.bzl", "aarch64_outs")
 load(
     "//build/kernel/kleaf:kernel.bzl",
+    "gki_artifacts",
     "kernel_abi",
     "kernel_build",
     "kernel_images",
@@ -15,7 +16,6 @@ load(
     "kernel_unstripped_modules_archive",
     "merged_kernel_uapi_headers",
 )
-load("//build/kernel/kleaf/impl:gki_artifacts.bzl", "gki_artifacts")
 load(
     "//private/google-modules/soc/gs:device_build_configs.bzl",
     "device_build_configs",
@@ -242,6 +242,7 @@ kernel_build(
         "//private/google-modules/soc/gs:gki_aosp": "//aosp:android/abi_gki_aarch64_pixel",
         "//private/google-modules/soc/gs:gki_aosp_staging": "//aosp-staging:android/abi_gki_aarch64_pixel",
     }),
+    make_goals = _PIXEL_MAKE_GOALS,
     module_outs = [
         # keep sorted
         "drivers/i2c/i2c-dev.ko",
@@ -256,7 +257,6 @@ kernel_build(
         "net/wireless/cfg80211.ko",
     ],
     strip_modules = True,
-    make_goals = _PIXEL_MAKE_GOALS,
 )
 
 kernel_abi(
