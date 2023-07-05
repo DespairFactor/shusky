@@ -271,6 +271,7 @@ lto_dependant_kernel_module(
     name = "zuma_soc.shusky",
     srcs = [
         "//private/google-modules/soc/gs:gs_soc_sources",
+        "//private/google-modules/trusty:headers",
     ],
     outs = [
         # keep sorted
