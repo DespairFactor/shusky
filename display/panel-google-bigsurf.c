@@ -169,6 +169,9 @@ static const struct exynos_dsi_cmd bigsurf_init_cmds[] = {
 
 	/* CMD2, Page1 */
 	EXYNOS_DSI_CMD_SEQ(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x01),
+	/* Adjust source output timing */
+	EXYNOS_DSI_CMD_SEQ(0x6F, 0x18),
+	EXYNOS_DSI_CMD_SEQ(0xD8, 0x38),
 	/* FFC Off */
 	EXYNOS_DSI_CMD_SEQ(0xC3, 0x00),
 	/* FFC setting (MIPI: 756Mbps) and FFC On */
@@ -181,6 +184,9 @@ static const struct exynos_dsi_cmd bigsurf_init_cmds[] = {
 
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x05),
 	EXYNOS_DSI_CMD_SEQ(0xC5, 0x15, 0x15, 0x15, 0xDD),
+	/* Allow VGSP voltage to change earlier */
+	EXYNOS_DSI_CMD_SEQ(0x6F, 0x0A),
+	EXYNOS_DSI_CMD_SEQ(0xE3, 0x00, 0x00, 0x00, 0x00),
 
 	/* Idle delay frame */
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0x6F, 0x0E),
@@ -224,8 +230,10 @@ static const struct exynos_dsi_cmd bigsurf_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xF9, 0x04),
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x1E),
 	EXYNOS_DSI_CMD_SEQ(0xFB, 0x0F),
+	/* disable the repeat-SEQ1 option */
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x0D),
-	EXYNOS_DSI_CMD_SEQ(0xFB, 0x80),
+	EXYNOS_DSI_CMD_SEQ(0xFB, 0x84),
+	/* BOIS clk gated turn on */
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x0F),
 	EXYNOS_DSI_CMD_SEQ(0xF5, 0x20),
 	/* CMD3, Page2 */
@@ -259,10 +267,6 @@ static const struct exynos_dsi_cmd bigsurf_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0x90, 0x03, 0x03),
 	EXYNOS_DSI_CMD_SEQ(0x91, 0x89, 0x28, 0x00, 0x1E, 0xD2, 0x00, 0x02, 0x25, 0x02,
 				0xC5, 0x00, 0x07, 0x03, 0x97, 0x03, 0x64, 0x10, 0xF0),
-	/* disable the repeat-SEQ1 option */
-	EXYNOS_DSI_CMD_SEQ(0xFF, 0xAA, 0x55, 0xA5, 0x81),
-	EXYNOS_DSI_CMD_SEQ(0x6F, 0x0D),
-	EXYNOS_DSI_CMD_SEQ(0xFB, 0x84),
 	/* VRGH = 7.4V */
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_MP), 0xF0, 0x55, 0xAA, 0x52,
 				0x08, 0x01),
@@ -391,7 +395,7 @@ static void bigsurf_update_irc(struct exynos_panel *ctx,
 				EXYNOS_DCS_BUF_ADD(ctx, 0xC0, 0x75);
 			}
 			EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x00);
-			EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_GAMMA_CURVE, 0x01);
+			EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_GAMMA_CURVE, 0x00);
 		} else {
 			EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x30);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
@@ -428,7 +432,8 @@ static void bigsurf_change_frequency(struct exynos_panel *ctx,
 
 	if (!IS_HBM_ON(ctx->hbm_mode)) {
 		if (vrefresh == 120) {
-			EXYNOS_DCS_WRITE_SEQ(ctx, 0x2F, 0x00);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x00);
+			EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_SET_GAMMA_CURVE, 0x00);
 		} else {
 			EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x30);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
@@ -737,8 +742,16 @@ static void bigsurf_set_local_hbm_mode(struct exynos_panel *ctx,
 	if (local_hbm_en) {
 		u16 level = exynos_panel_get_brightness(ctx);
 
-		if (IS_HBM_ON(ctx->hbm_mode))
+		if (IS_HBM_ON(ctx->hbm_mode)) {
 			bigsurf_update_irc(ctx, ctx->hbm_mode, vrefresh);
+		} else if (vrefresh == 120) {
+			EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x04);
+			EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xC0, 0x75);
+		} else {
+			dev_warn(ctx->dev, "enable LHBM at unexpected state (HBM: %d, vrefresh: %dhz)\n",
+				ctx->hbm_mode, vrefresh);
+		}
 		bigsurf_set_local_hbm_background_brightness(ctx, level);
 		bigsurf_set_local_hbm_brightness(ctx, true);
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0x87, 0x05);
