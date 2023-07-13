@@ -12,7 +12,7 @@
 #include <linux/of_platform.h>
 #include <video/mipi_display.h>
 
-#include "include/trace/dpu_trace.h"
+#include "trace/dpu_trace.h"
 #include "panel/panel-samsung-drv.h"
 
 static const struct drm_dsc_config pps_config = {
