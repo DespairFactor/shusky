@@ -1517,6 +1517,9 @@ static const struct exynos_dsi_cmd hk3_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_DELAY(10, MIPI_DCS_EXIT_SLEEP_MODE),
 
 	EXYNOS_DSI_CMD0(unlock_cmd_f0),
+	/* Delete Toggle */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1_1), 0xB0, 0x00, 0x58, 0x94),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1_1), 0x94, 0x0B, 0xF0, 0x0B, 0xF0),
 	/* AMP type change */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x4F, 0xF4),
 	EXYNOS_DSI_CMD_SEQ(0xF4, 0x50),
