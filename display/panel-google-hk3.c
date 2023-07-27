@@ -2464,7 +2464,7 @@ static void hk3_debugfs_init(struct drm_panel *panel, struct dentry *root)
 				&spanel->force_changeable_te2);
 	debugfs_create_bool("force_za_off", 0644, panel_root,
 				&spanel->force_za_off);
-	debugfs_create_u8("hw_acl_setting", 0644, ctx->debugfs_entry,
+	debugfs_create_u8("hw_acl_setting", 0644, panel_root,
 				&spanel->hw_acl_setting);
 	dput(csroot);
 panel_out:
