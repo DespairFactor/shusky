@@ -522,9 +522,11 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx,
 	struct hk3_panel *spanel = to_spanel(ctx);
 	u8 val;
 	DECLARE_BITMAP(changed_feat, FEAT_MAX);
+	bool vrefresh_changed = spanel->hw_vrefresh != vrefresh;
 
 	if (enforce) {
 		bitmap_fill(changed_feat, FEAT_MAX);
+		vrefresh_changed = true;
 	} else {
 		bitmap_xor(changed_feat, feat, spanel->hw_feat, FEAT_MAX);
 		if (bitmap_empty(changed_feat, FEAT_MAX) &&
@@ -554,13 +556,19 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx,
 
 	/* TE setting */
 	if (test_bit(FEAT_EARLY_EXIT, changed_feat) ||
-		test_bit(FEAT_OP_NS, changed_feat)) {
+		test_bit(FEAT_OP_NS, changed_feat) || vrefresh_changed) {
 		if (test_bit(FEAT_EARLY_EXIT, feat) && !spanel->force_changeable_te) {
+			u32 peak_vrefresh = test_bit(FEAT_OP_NS, feat) ? 60 : 120;
+
 			/* Fixed TE */
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x51);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x02, 0xB9);
-			val = test_bit(FEAT_OP_NS, feat) ? 0x01 : 0x00;
-			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, val);
+			/* Set TE frequency same with vrefresh */
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, peak_vrefresh == vrefresh ? 0x00 : 0x01);
+			/* Set fixed TE width */
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x08, 0xB9);
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x0B, 0xBB, 0x00, 0x2F,
+			   0x0B, 0xBB, 0x00, 0x2F);
 		} else {
 			/* Changeable TE */
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x04);
@@ -847,11 +855,14 @@ static void hk3_disable_panel_feat(struct exynos_panel *ctx, u32 vrefresh)
 	hk3_set_panel_feat(ctx, vrefresh, 0, feat, true);
 }
 
-static void hk3_update_panel_feat(struct exynos_panel *ctx, u32 vrefresh, bool enforce)
+static void hk3_update_panel_feat(struct exynos_panel *ctx, bool enforce)
 {
 	struct hk3_panel *spanel = to_spanel(ctx);
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
+	u32 idle_vrefresh = spanel->auto_mode_vrefresh;
 
-	hk3_set_panel_feat(ctx, vrefresh, spanel->auto_mode_vrefresh, spanel->feat, enforce);
+	hk3_set_panel_feat(ctx, vrefresh, idle_vrefresh, spanel->feat, enforce);
 }
 
 static void hk3_update_refresh_mode(struct exynos_panel *ctx,
@@ -880,7 +891,11 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	else
 		clear_bit(FEAT_FRAME_AUTO, spanel->feat);
 
-	if (vrefresh == 120 || idle_vrefresh)
+	/*
+	 * fixed TE + early exit: 60NS, 120HS, 60HS + auto mode
+	 * changeable TE + disabling early exit: 60HS + manual mode
+	 */
+	if ((vrefresh == ctx->op_hz) || idle_vrefresh)
 		set_bit(FEAT_EARLY_EXIT, spanel->feat);
 	else
 		clear_bit(FEAT_EARLY_EXIT, spanel->feat);
@@ -894,7 +909,8 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	 * new frame commit will correct it if the guess is wrong.
 	 */
 	ctx->panel_idle_vrefresh = idle_vrefresh;
-	hk3_update_panel_feat(ctx, vrefresh, false);
+
+	hk3_set_panel_feat(ctx, vrefresh, idle_vrefresh, spanel->feat, false);
 	te2_state_changed(ctx->bl);
 	backlight_state_changed(ctx->bl);
 
@@ -1493,16 +1509,13 @@ static void hk3_set_nolp_mode(struct exynos_panel *ctx,
 
 	hk3_wait_for_vsync_done(ctx, 30, false);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
-	/* TE width setting */
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x04, 0xB9);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x0B, 0xBB, 0x00, 0x2F, /* changeable TE */
-			   0x0B, 0xBB, 0x00, 0x2F, 0x0B, 0xBB, 0x00, 0x2F); /* fixed TE */
 	/* disabling AOD low Mode is a must before aod-off */
 	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x52, 0x94);
 	EXYNOS_DCS_BUF_ADD(ctx, 0x94, 0x00);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, lock_cmd_f0);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, aod_off);
-	hk3_update_panel_feat(ctx, drm_mode_vrefresh(&pmode->mode), true);
+	hk3_set_panel_feat(ctx, drm_mode_vrefresh(&pmode->mode),
+		spanel->auto_mode_vrefresh, spanel->feat, true);
 	/* backlight control and dimming */
 	hk3_write_display_mode(ctx, &pmode->mode);
 	hk3_change_frequency(ctx, pmode);
@@ -1686,7 +1699,7 @@ static int hk3_enable(struct drm_panel *panel)
 		u32 vrefresh = drm_mode_vrefresh(mode);
 		bool is_ns = needs_reset ? false : test_bit(FEAT_OP_NS, spanel->feat);
 
-		hk3_update_panel_feat(ctx, vrefresh, true);
+		hk3_update_panel_feat(ctx, true);
 		hk3_write_display_mode(ctx, mode); /* dimming and HBM */
 		hk3_change_frequency(ctx, pmode);
 
@@ -1854,7 +1867,7 @@ static void hk3_set_hbm_mode(struct exynos_panel *ctx,
 	if (ctx->panel_state == PANEL_STATE_NORMAL) {
 		if (!IS_HBM_ON(mode))
 			hk3_write_display_mode(ctx, &pmode->mode);
-		hk3_update_panel_feat(ctx, drm_mode_vrefresh(&pmode->mode), false);
+		hk3_update_panel_feat(ctx, false);
 		if (IS_HBM_ON(mode))
 			hk3_write_display_mode(ctx, &pmode->mode);
 	}
@@ -1993,7 +2006,7 @@ static int hk3_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
 		clear_bit(FEAT_OP_NS, spanel->feat);
 
 	if (is_panel_active(ctx))
-		hk3_update_panel_feat(ctx, vrefresh, false);
+		hk3_update_refresh_mode(ctx, ctx->current_mode, spanel->hw_idle_vrefresh);
 	dev_info(ctx->dev, "%s op_hz at %d\n",
 		is_panel_active(ctx) ? "set" : "cache", hz);
 
