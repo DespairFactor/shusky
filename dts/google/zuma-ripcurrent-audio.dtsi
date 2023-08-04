@@ -326,7 +326,10 @@
 			samsung,spi-chip-select-mode = <2>;
 		};
 	};
+};
 
+&aoc_snd_card {
+	hac_amp_en-gpios = <&s2mpg15_gpio 6 GPIO_ACTIVE_HIGH>;
 };
 
 
