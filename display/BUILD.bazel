@@ -9,9 +9,9 @@ kernel_module(
         "**/*.h",
         "Kbuild",
     ]) + [
-        "//private/google-modules/display_legacy/common/include:headers",
-        "//private/google-modules/display_legacy/samsung:headers",
-        "//private/google-modules/display_legacy/samsung/include:headers",
+        "//private/google-modules/display/common/include:headers",
+        "//private/google-modules/display/samsung:headers",
+        "//private/google-modules/display/samsung/include:headers",
         "//private/google-modules/soc/gs:gs_soc_headers",
     ],
     outs = [
@@ -26,7 +26,7 @@ kernel_module(
         "//private/google-modules/soc/gs:__pkg__",
     ],
     deps = [
-        "//private/google-modules/display_legacy/samsung:display.samsung",
+        "//private/google-modules/display/samsung:display.samsung",
         "//private/google-modules/soc/gs:gs_soc_module",
     ],
 )
