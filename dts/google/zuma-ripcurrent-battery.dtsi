@@ -7,7 +7,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/irq.h>
-#include "../google-dts-base/zuma-battery.dtsi"
+#include "google-dts-base/zuma-battery.dtsi"
 
 / {
 	fragment@charging {
@@ -73,7 +73,7 @@
 	#size-cells = <0>;
 	status = "okay";
 	clock-frequency = <400000>;
-#include "../google-dts-base/zuma-max777xx.dtsi"
+#include "google-dts-base/zuma-max777xx.dtsi"
 };
 
 &max77759_fg {

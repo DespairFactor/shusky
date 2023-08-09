@@ -6,7 +6,7 @@
  *
  */
 
-#include "../google-dts-base/zuma-sec-touch.dtsi"
+#include "google-dts-base/zuma-sec-touch.dtsi"
 
 &tbn {
 	tbn,mode = <3>;

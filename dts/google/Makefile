@@ -23,19 +23,19 @@ shusky_overlays := \
 
 # DPM overlays
 shusky_overlays += \
-	../google-dts-base/zuma-dpm-eng.dtbo \
-	../google-dts-base/zuma-dpm-userdebug.dtbo \
-	../google-dts-base/zuma-dpm-user.dtbo
+	google-dts-base/zuma-dpm-eng.dtbo \
+	google-dts-base/zuma-dpm-userdebug.dtbo \
+	google-dts-base/zuma-dpm-user.dtbo
 
 DTC_FLAGS_zuma-dpm-eng += -a 4096
 DTC_FLAGS_zuma-dpm-user += -a 4096
 DTC_FLAGS_zuma-dpm-userdebug += -a 4096
 
 shusky_dtbs := \
-	../google-dts-base/zuma-a0-foplp.dtb \
-	../google-dts-base/zuma-a0-ipop.dtb \
-	../google-dts-base/zuma-b0-foplp.dtb \
-	../google-dts-base/zuma-b0-ipop.dtb
+	google-dts-base/zuma-a0-foplp.dtb \
+	google-dts-base/zuma-a0-ipop.dtb \
+	google-dts-base/zuma-b0-foplp.dtb \
+	google-dts-base/zuma-b0-ipop.dtb
 
 # Usage:
 #   $(call DTBS_overlay_template, overlay, base_dtb, suffix)

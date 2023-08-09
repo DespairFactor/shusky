@@ -6,7 +6,7 @@
  *
  */
 
-#include "../google-dts-base/zuma-charging.dtsi"
+#include "google-dts-base/zuma-charging.dtsi"
 
 &pinctrl_0 {
 
@@ -24,7 +24,7 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	#include "../google-dts-base/zuma-charge-pumps.dtsi"
+	#include "google-dts-base/zuma-charge-pumps.dtsi"
 };
 
 &google_cpm {
