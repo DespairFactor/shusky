@@ -7,7 +7,6 @@ load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
 load("//build/kernel/kleaf:constants.bzl", "aarch64_outs")
 load(
     "//build/kernel/kleaf:kernel.bzl",
-    "gki_artifacts",
     "kernel_abi",
     "kernel_build",
     "kernel_images",
@@ -16,6 +15,7 @@ load(
     "kernel_unstripped_modules_archive",
     "merged_kernel_uapi_headers",
 )
+load("//build/kernel/kleaf/impl:gki_artifacts.bzl", "gki_artifacts")
 load(
     "//private/google-modules/soc/gs:device_build_configs.bzl",
     "device_build_configs",
@@ -273,7 +273,6 @@ lto_dependant_kernel_module(
     name = "zuma_soc.shusky",
     srcs = [
         "//private/google-modules/soc/gs:gs_soc_sources",
-        "//private/google-modules/trusty:headers",
     ],
     outs = [
         # keep sorted
@@ -302,7 +301,6 @@ lto_dependant_kernel_module(
         "drivers/input/keycombo.ko",
         "drivers/input/keydebug.ko",
         "drivers/input/misc/vl53l1/stmvl53l1.ko",
-        "drivers/iommu/exynos-pcie-iommu.ko",
         "drivers/iommu/samsung-iommu-group.ko",
         "drivers/iommu/samsung-secure-iova.ko",
         "drivers/iommu/samsung_iommu_v9.ko",
@@ -370,7 +368,7 @@ lto_dependant_kernel_module(
         "drivers/soc/google/exynos-pmu-if.ko",
         "drivers/soc/google/exynos-seclog.ko",
         "drivers/soc/google/exynos_pm_qos.ko",
-        "drivers/soc/google/gcma/gcma.ko",
+        # "drivers/soc/google/gcma/gcma.ko",
         "drivers/soc/google/gs-chipid.ko",
         "drivers/soc/google/gsa/gsa.ko",
         "drivers/soc/google/gsa/gsa_gsc.ko",
@@ -384,16 +382,15 @@ lto_dependant_kernel_module(
         "drivers/soc/google/pt/slc_dummy.ko",
         "drivers/soc/google/pt/slc_pmon.ko",
         "drivers/soc/google/pt/slc_pt.ko",
-        "drivers/soc/google/vh/kernel/cgroup/vh_cgroup.ko",
-        "drivers/soc/google/vh/kernel/fs/vh_fs.ko",
-        "drivers/soc/google/vh/kernel/metrics/pixel_metrics.ko",
-        "drivers/soc/google/vh/kernel/mm/vh_mm.ko",
-        "drivers/soc/google/vh/kernel/pixel_em/pixel_em.ko",
+        # "drivers/soc/google/vh/kernel/cgroup/vh_cgroup.ko",
+        # "drivers/soc/google/vh/kernel/metrics/pixel_metrics.ko",
+        # "drivers/soc/google/vh/kernel/mm/vh_mm.ko",
+        # "drivers/soc/google/vh/kernel/pixel_em/pixel_em.ko",
         # "drivers/soc/google/vh/kernel/sched/sched_tp.ko",
         # "drivers/soc/google/vh/kernel/sched/vh_preemptirq_long.ko",
         # "drivers/soc/google/vh/kernel/sched/vh_sched.ko",
         "drivers/soc/google/vh/kernel/systrace.ko",
-        "drivers/soc/google/vh/kernel/thermal/vh_thermal.ko",
+        # "drivers/soc/google/vh/kernel/thermal/vh_thermal.ko",
         "drivers/spi/spi-s3c64xx.ko",
         "drivers/spmi/spmi_bit_bang.ko",
         "drivers/thermal/google/s2mpg15_spmic_thermal.ko",
@@ -404,7 +401,6 @@ lto_dependant_kernel_module(
         "drivers/usb/dwc3/dwc3-exynos-usb.ko",
         "drivers/usb/gadget/function/usb_f_dm.ko",
         "drivers/usb/gadget/function/usb_f_dm1.ko",
-        "drivers/usb/gadget/function/usb_f_etr_miu.ko",
         "drivers/usb/gadget/function/usb_f_rndis.ko",
         "drivers/usb/host/xhci-exynos.ko",
         "drivers/usb/typec/tcpm/google/bc_max77759.ko",
