@@ -20,6 +20,9 @@
 #define BIGSURF_DDIC_ID_LEN 8
 #define BIGSURF_DIMMING_FRAME 32
 
+#define MIPI_DSI_FREQ_DEFAULT 756
+#define MIPI_DSI_FREQ_ALTERNATIVE 776
+
 #define WIDTH_MM 64
 #define HEIGHT_MM 143
 
@@ -174,8 +177,8 @@ static const struct exynos_dsi_cmd bigsurf_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xD8, 0x38),
 	/* FFC Off */
 	EXYNOS_DSI_CMD_SEQ(0xC3, 0x00),
-	/* FFC setting (MIPI: 756Mbps) and FFC On */
-	EXYNOS_DSI_CMD_SEQ(0xC3, 0xDD, 0x06, 0x20, 0x0C, 0xFF, 0x00, 0x06, 0x20,
+	/* FFC setting (MIPI: 756Mbps) */
+	EXYNOS_DSI_CMD_SEQ(0xC3, 0x00, 0x06, 0x20, 0x0C, 0xFF, 0x00, 0x06, 0x20,
 				 0x0C, 0xFF, 0x00, 0x04, 0x63, 0x0C, 0x05, 0xD9,
 				 0x10, 0x04, 0x63, 0x0C, 0x05, 0xD9, 0x10, 0x04,
 				 0x63, 0x0C, 0x05, 0xD9, 0x10, 0x04, 0x63, 0x0C,
@@ -392,6 +395,9 @@ static void bigsurf_update_irc(struct exynos_panel *ctx,
 			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0xB0);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x44);
 		}
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xC0, 0x32);
 	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0x5F, 0x00);
 		if (vrefresh == 120) {
@@ -408,6 +414,9 @@ static void bigsurf_update_irc(struct exynos_panel *ctx,
 			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0xB0);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x41);
 		}
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xC0, 0x30);
 		if (ctx->panel_rev >= PANEL_REV_EVT1) {
 			const u8 val1 = level >> 8;
 			const u8 val2 = level & 0xff;
@@ -417,6 +426,19 @@ static void bigsurf_update_irc(struct exynos_panel *ctx,
 	}
 	/* Empty command is for flush */
 	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0x00);
+}
+
+static bool bigsurf_rr_need_te_high(struct exynos_panel *ctx,
+				    const struct exynos_panel_mode *pmode)
+{
+	if (!ctx->current_mode || !pmode)
+		return false;
+
+	if (drm_mode_vrefresh(&ctx->current_mode->mode) == 60 &&
+			drm_mode_vrefresh(&pmode->mode) == 120)
+		return true;
+
+	return false;
 }
 
 static void bigsurf_change_frequency(struct exynos_panel *ctx,
@@ -534,6 +556,7 @@ static int bigsurf_enable(struct drm_panel *panel)
 	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	spanel->lhbm_ctl.hist_roi_configured = false;
+	ctx->dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT;
 
 	return 0;
 }
@@ -612,6 +635,59 @@ static int bigsurf_atomic_check(struct exynos_panel *ctx, struct drm_atomic_stat
 	}
 
 	return 0;
+}
+
+static void bigsurf_pre_update_ffc(struct exynos_panel *ctx)
+{
+	dev_dbg(ctx->dev, "%s\n", __func__);
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	/* FFC off */
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x01);
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xC3, 0x00);
+
+	DPU_ATRACE_END(__func__);
+}
+
+static void bigsurf_update_ffc(struct exynos_panel *ctx, unsigned int hs_clk)
+{
+	dev_dbg(ctx->dev, "%s: hs_clk: current=%d, target=%d\n",
+		__func__, ctx->dsi_hs_clk, hs_clk);
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	if (hs_clk != MIPI_DSI_FREQ_DEFAULT && hs_clk != MIPI_DSI_FREQ_ALTERNATIVE) {
+		dev_warn(ctx->dev, "invalid hs_clk=%d for FFC\n", hs_clk);
+	} else if (ctx->dsi_hs_clk != hs_clk) {
+		dev_info(ctx->dev, "%s: updating for hs_clk=%d\n", __func__, hs_clk);
+		ctx->dsi_hs_clk = hs_clk;
+
+		/* Update FFC */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x01);
+		if (hs_clk == MIPI_DSI_FREQ_DEFAULT)
+			EXYNOS_DCS_BUF_ADD(ctx, 0xC3, 0x00, 0x06, 0x20, 0x0C, 0xFF,
+						0x00, 0x06, 0x20, 0x0C, 0xFF, 0x00,
+						0x04, 0x63, 0x0C, 0x05, 0xD9, 0x10,
+						0x04, 0x63, 0x0C, 0x05, 0xD9, 0x10,
+						0x04, 0x63, 0x0C, 0x05, 0xD9, 0x10,
+						0x04, 0x63, 0x0C, 0x05, 0xD9, 0x10,
+						0x04, 0x63, 0x0C, 0x05, 0xD9, 0x10);
+		else /* MIPI_DSI_FREQ_ALTERNATIVE */
+			EXYNOS_DCS_BUF_ADD(ctx, 0xC3, 0x00, 0x06, 0x20, 0x0C, 0xFF,
+						0x00, 0x06, 0x20, 0x0C, 0xFF, 0x00,
+						0x04, 0x46, 0x0C, 0x06, 0x0D, 0x11,
+						0x04, 0x46, 0x0C, 0x06, 0x0D, 0x11,
+						0x04, 0x46, 0x0C, 0x06, 0x0D, 0x11,
+						0x04, 0x46, 0x0C, 0x06, 0x0D, 0x11,
+						0x04, 0x46, 0x0C, 0x06, 0x0D, 0x11);
+	}
+
+	/* FFC on */
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x01);
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xC3, 0xDD);
+
+	DPU_ATRACE_END(__func__);
 }
 
 static void bigsurf_set_local_hbm_background_brightness(struct exynos_panel *ctx, u16 br)
@@ -1084,6 +1160,9 @@ static const struct exynos_panel_funcs bigsurf_exynos_funcs = {
 	.update_te2 = bigsurf_update_te2,
 	.read_id = bigsurf_read_id,
 	.atomic_check = bigsurf_atomic_check,
+	.pre_update_ffc = bigsurf_pre_update_ffc,
+	.update_ffc = bigsurf_update_ffc,
+	.rr_need_te_high = bigsurf_rr_need_te_high,
 };
 
 static const struct exynos_brightness_configuration bigsurf_btr_configs[] = {
@@ -1210,6 +1289,7 @@ struct exynos_panel_desc google_bigsurf = {
 	.lhbm_effective_delay_frames = 2,
 	.lhbm_post_cmd_delay_frames = 3,
 	.lhbm_on_delay_frames = 2,
+	.default_dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT,
 	.reset_timing_ms = {1, 1, 20},
 	.reg_ctrl_enable = {
 		{PANEL_REG_ID_VDDI, 0},
