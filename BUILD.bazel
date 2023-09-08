@@ -411,6 +411,8 @@ lto_dependant_kernel_module(
         "drivers/usb/typec/tcpm/google/bc_max77759.ko",
         "drivers/usb/typec/tcpm/google/max77759_contaminant.ko",
         "drivers/usb/typec/tcpm/google/max77759_helper.ko",
+        "drivers/usb/typec/tcpm/google/max77779_contaminant.ko",
+        "drivers/usb/typec/tcpm/google/max777x9_contaminant.ko",
         "drivers/usb/typec/tcpm/google/tcpci_max77759.ko",
         "drivers/usb/typec/tcpm/google/usb_psy.ko",
         "drivers/usb/typec/tcpm/google/usbc_cooling_dev.ko",
