@@ -1,10 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-2.0
 
-if [ "${BUILD_AOSP_KERNEL}" != "1" ]; then
-  BUILD_STAGING_KERNEL="${BUILD_STAGING_KERNEL:-1}"
-fi
-
 function exit_if_error {
   if [ $1 -ne 0 ]; then
     echo "ERROR: $2: retval=$1" >&2
@@ -42,5 +38,4 @@ exec tools/bazel run \
     --config=stamp \
     --config=shusky \
     --config=fast \
-    --config=pixel_debug_common \
     //private/devices/google/shusky:zuma_shusky_dist "$@"
