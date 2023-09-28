@@ -279,9 +279,9 @@ lto_dependant_kernel_module(
     ],
     outs = [
         # keep sorted
-        # "drivers/block/zram/zcomp_cpu.ko",
-        # "drivers/block/zram/zcomp_eh.ko",
-        # "drivers/block/zram/zram_gs.ko",
+        "drivers/block/zram/zcomp_cpu.ko",
+        "drivers/block/zram/zcomp_eh.ko",
+        "drivers/block/zram/zram_gs.ko",
         "drivers/bts/bts.ko",
         "drivers/clk/gs/clk_exynos_gs.ko",
         "drivers/clocksource/exynos_mct_v3.ko",
