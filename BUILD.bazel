@@ -413,6 +413,7 @@ lto_dependant_kernel_module(
         "drivers/usb/gadget/function/usb_f_rndis.ko",
         "drivers/usb/host/xhci-exynos.ko",
         "drivers/usb/typec/tcpm/google/bc_max77759.ko",
+        "drivers/usb/typec/tcpm/google/google_tcpci_shim.ko",
         "drivers/usb/typec/tcpm/google/max77759_contaminant.ko",
         "drivers/usb/typec/tcpm/google/max77759_helper.ko",
         "drivers/usb/typec/tcpm/google/max77779_contaminant.ko",
