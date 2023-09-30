@@ -208,6 +208,7 @@ kernel_build(
         # keep sorted
         "//private/google-modules/bms/misc:bms-misc.kconfig",
         "//private/google-modules/display/common:common.kconfig",
+        "//private/google-modules/display/samsung:display.samsung.kconfig",
         "//private/google-modules/power/reset:reset.kconfig",
         "//private/google-modules/soc/gs:build.config.slider.blktest",
         "//private/google-modules/soc/gs:build.config.slider.debug_api",
@@ -247,6 +248,7 @@ kernel_build(
     make_goals = _PIXEL_MAKE_GOALS,
     module_outs = [
         # keep sorted
+        "drivers/gpu/drm/display/drm_display_helper.ko",
         "drivers/i2c/i2c-dev.ko",
         "drivers/misc/eeprom/at24.ko",
         "drivers/misc/open-dice.ko",
