@@ -133,7 +133,7 @@ struct hk3_panel {
 	bool force_changeable_te2;
 	/** @hw_acl_setting: automatic current limiting setting */
 	u8 hw_acl_setting;
-	/** @hw_dbv: indecate the current dbv */
+	/** @hw_dbv: indicate the current dbv */
 	u16 hw_dbv;
 	/** @hw_za_enabled: whether zonal attenuation is enabled */
 	bool hw_za_enabled;
@@ -304,6 +304,9 @@ static const struct drm_dsc_config fhd_pps_config = {
 #define HK3_TE_USEC_60HZ_HS 8500
 #define HK3_TE_USEC_60HZ_NS 546
 #define HK3_TE_PERIOD_DELTA_TOLERANCE_USEC 2000
+
+#define MIPI_DSI_FREQ_DEFAULT 1368
+#define MIPI_DSI_FREQ_ALTERNATIVE 1346
 
 #define PROJECT "HK3"
 
@@ -516,21 +519,22 @@ static u32 hk3_get_min_idle_vrefresh(struct exynos_panel *ctx,
 	return min_idle_vrefresh;
 }
 
-static void hk3_set_panel_feat(struct exynos_panel *ctx,
-	const u32 vrefresh, const u32 idle_vrefresh, const unsigned long *feat, bool enforce)
+static void hk3_set_panel_feat(struct exynos_panel *ctx, const u32 vrefresh,
+			       const u32 idle_vrefresh, const unsigned long *feat,
+			       bool vrr_mode, bool enforce)
 {
 	struct hk3_panel *spanel = to_spanel(ctx);
 	u8 val;
 	DECLARE_BITMAP(changed_feat, FEAT_MAX);
-	bool vrefresh_changed = spanel->hw_vrefresh != vrefresh;
+	bool vrefresh_changed = vrr_mode ? test_bit(FEAT_OP_NS, changed_feat) :
+					   spanel->hw_vrefresh != vrefresh;
 
 	if (enforce) {
 		bitmap_fill(changed_feat, FEAT_MAX);
 		vrefresh_changed = true;
 	} else {
 		bitmap_xor(changed_feat, feat, spanel->hw_feat, FEAT_MAX);
-		if (bitmap_empty(changed_feat, FEAT_MAX) &&
-			vrefresh == spanel->hw_vrefresh &&
+		if (bitmap_empty(changed_feat, FEAT_MAX) && !vrefresh_changed &&
 			idle_vrefresh == spanel->hw_idle_vrefresh) {
 			dev_dbg(ctx->dev, "%s: no changes, skip update\n", __func__);
 			return;
@@ -541,7 +545,7 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx,
 	spanel->hw_idle_vrefresh = idle_vrefresh;
 	bitmap_copy(spanel->hw_feat, feat, FEAT_MAX);
 	dev_dbg(ctx->dev,
-		"op=%s ee=%s hbm=%s irc=%s fi=%s fps=%u idle_fps=%u\n",
+		"op=%s ee=%s hbm=%s irc=%s fi=%s fps=%u idle_fps=%u vrr=%d\n",
 		test_bit(FEAT_OP_NS, feat) ? "ns" : "hs",
 		test_bit(FEAT_EARLY_EXIT, feat) ? "on" : "off",
 		test_bit(FEAT_HBM, feat) ? "on" : "off",
@@ -550,7 +554,8 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx,
 			(test_bit(FEAT_IRC_OFF, feat) ? "off" : "on"),
 		test_bit(FEAT_FRAME_AUTO, feat) ? "auto" : "manual",
 		vrefresh,
-		idle_vrefresh);
+		idle_vrefresh,
+		vrr_mode);
 
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 
@@ -564,7 +569,8 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx,
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x51);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x02, 0xB9);
 			/* Set TE frequency same with vrefresh */
-			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, peak_vrefresh == vrefresh ? 0x00 : 0x01);
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, vrr_mode ? 0x00 :
+					   (peak_vrefresh == vrefresh ? 0x00 : 0x01));
 			/* Set fixed TE width */
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x08, 0xB9);
 			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x0B, 0xBB, 0x00, 0x2F,
@@ -841,28 +847,48 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx,
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);;
 }
 
+static void hk3_update_vrr_panel_feat(struct exynos_panel *ctx,
+				      unsigned long *feat, u32 vrefresh)
+{
+	set_bit(FEAT_EARLY_EXIT, feat);
+	clear_bit(FEAT_FRAME_AUTO, feat);
+	if (vrefresh == 60)
+		set_bit(FEAT_OP_NS, feat);
+	else
+		clear_bit(FEAT_OP_NS, feat);
+}
+
 /**
  * hk3_disable_panel_feat - set the panel at the state of powering up except refresh rate
  * @ctx: exynos_panel struct
  * @vrefresh: refresh rate
  * This function disables HBM, switches to HS, sets manual mode and changeable TE.
  */
-static void hk3_disable_panel_feat(struct exynos_panel *ctx, u32 vrefresh)
+static void hk3_disable_panel_feat(struct exynos_panel *ctx,
+				   const struct exynos_panel_mode *pmode, u32 vrefresh)
 {
 	DECLARE_BITMAP(feat, FEAT_MAX);
 
 	bitmap_zero(feat, FEAT_MAX);
-	hk3_set_panel_feat(ctx, vrefresh, 0, feat, true);
+	hk3_set_panel_feat(ctx, vrefresh, 0, feat, is_vrr_mode(pmode), true);
 }
 
-static void hk3_update_panel_feat(struct exynos_panel *ctx, bool enforce)
+static void hk3_update_panel_feat(struct exynos_panel *ctx,
+				  const struct exynos_panel_mode *pmode, bool enforce)
 {
 	struct hk3_panel *spanel = to_spanel(ctx);
-	const struct exynos_panel_mode *pmode = ctx->current_mode;
 	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
 	u32 idle_vrefresh = spanel->auto_mode_vrefresh;
+	bool vrr_mode = is_vrr_mode(pmode);
 
-	hk3_set_panel_feat(ctx, vrefresh, idle_vrefresh, spanel->feat, enforce);
+	/* Manual 1Hz + fixed TE + early exit for VRR modes */
+	if (vrr_mode) {
+		hk3_update_vrr_panel_feat(ctx, spanel->feat, vrefresh);
+		idle_vrefresh = 0;
+		vrefresh = 1;
+	}
+
+	hk3_set_panel_feat(ctx, vrefresh, idle_vrefresh, spanel->feat, vrr_mode, enforce);
 }
 
 static void hk3_update_refresh_mode(struct exynos_panel *ctx,
@@ -910,7 +936,7 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	 */
 	ctx->panel_idle_vrefresh = idle_vrefresh;
 
-	hk3_set_panel_feat(ctx, vrefresh, idle_vrefresh, spanel->feat, false);
+	hk3_update_panel_feat(ctx, pmode, false);
 	te2_state_changed(ctx->bl);
 	backlight_state_changed(ctx->bl);
 
@@ -1431,7 +1457,7 @@ static void hk3_set_lp_mode(struct exynos_panel *ctx, const struct exynos_panel_
 
 	DPU_ATRACE_BEGIN(__func__);
 
-	hk3_disable_panel_feat(ctx, vrefresh);
+	hk3_disable_panel_feat(ctx, pmode, vrefresh);
 	if (panel_enabled)  {
 		/* init sequence has sent display-off command already */
 		if (!hk3_is_peak_vrefresh(vrefresh, is_ns) && is_changeable_te)
@@ -1515,7 +1541,7 @@ static void hk3_set_nolp_mode(struct exynos_panel *ctx,
 	EXYNOS_DCS_BUF_ADD_SET(ctx, lock_cmd_f0);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, aod_off);
 	hk3_set_panel_feat(ctx, drm_mode_vrefresh(&pmode->mode),
-		spanel->auto_mode_vrefresh, spanel->feat, true);
+		spanel->auto_mode_vrefresh, spanel->feat, is_vrr_mode(pmode), true);
 	/* backlight control and dimming */
 	hk3_write_display_mode(ctx, &pmode->mode);
 	hk3_change_frequency(ctx, pmode);
@@ -1552,9 +1578,9 @@ static const struct exynos_dsi_cmd hk3_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x3C, 0xB9),
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x19, 0x09),
 
-	/* FFC: 165MHz, MIPI Speed 1368 Mbps */
+	/* FFC: off, 165MHz, MIPI Speed 1368 Mbps */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x36, 0xC5),
-	EXYNOS_DSI_CMD_SEQ(0xC5, 0x11, 0x10, 0x50, 0x05, 0x4D, 0x31, 0x40, 0x00,
+	EXYNOS_DSI_CMD_SEQ(0xC5, 0x10, 0x10, 0x50, 0x05, 0x4D, 0x31, 0x40, 0x00,
 				 0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
 				 0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
 				 0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
@@ -1680,6 +1706,7 @@ static int hk3_enable(struct drm_panel *panel)
 			hk3_negative_field_setting(ctx);
 
 		spanel->is_pixel_off = false;
+		ctx->dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT;
 	}
 	PANEL_SEQ_LABEL_END("init");
 
@@ -1699,7 +1726,7 @@ static int hk3_enable(struct drm_panel *panel)
 		u32 vrefresh = drm_mode_vrefresh(mode);
 		bool is_ns = needs_reset ? false : test_bit(FEAT_OP_NS, spanel->feat);
 
-		hk3_update_panel_feat(ctx, true);
+		hk3_update_panel_feat(ctx, pmode, true);
 		hk3_write_display_mode(ctx, mode); /* dimming and HBM */
 		hk3_change_frequency(ctx, pmode);
 
@@ -1736,7 +1763,7 @@ static int hk3_disable(struct drm_panel *panel)
 	if (ret)
 		return ret;
 
-	hk3_disable_panel_feat(ctx, 60);
+	hk3_disable_panel_feat(ctx, ctx->current_mode, 60);
 	/*
 	 * can't get crtc pointer here, fallback to sleep. hk3_disable_panel_feat() sends freq
 	 * update command to trigger early exit if auto mode is enabled before, waiting for one
@@ -1867,7 +1894,7 @@ static void hk3_set_hbm_mode(struct exynos_panel *ctx,
 	if (ctx->panel_state == PANEL_STATE_NORMAL) {
 		if (!IS_HBM_ON(mode))
 			hk3_write_display_mode(ctx, &pmode->mode);
-		hk3_update_panel_feat(ctx, false);
+		hk3_update_panel_feat(ctx, pmode, false);
 		if (IS_HBM_ON(mode))
 			hk3_write_display_mode(ctx, &pmode->mode);
 	}
@@ -1997,6 +2024,11 @@ static int hk3_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
 		return -EINVAL;
 	}
 
+	if (is_vrr_mode(ctx->current_mode)) {
+		dev_warn(ctx->dev, "%s: should be set via mode switch\n", __func__);
+		return -EINVAL;
+	}
+
 	DPU_ATRACE_BEGIN(__func__);
 
 	ctx->op_hz = hz;
@@ -2069,6 +2101,61 @@ static void hk3_normal_mode_work(struct exynos_panel *ctx)
 	}
 }
 
+static void hk3_pre_update_ffc(struct exynos_panel *ctx)
+{
+	dev_dbg(ctx->dev, "%s\n", __func__);
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+	/* FFC off */
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x36, 0xC5);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x10);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+
+	DPU_ATRACE_END(__func__);
+}
+
+static void hk3_update_ffc(struct exynos_panel *ctx, unsigned int hs_clk)
+{
+	dev_dbg(ctx->dev, "%s: hs_clk: current=%d, target=%d\n",
+		__func__, ctx->dsi_hs_clk, hs_clk);
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	if (hs_clk != MIPI_DSI_FREQ_DEFAULT && hs_clk != MIPI_DSI_FREQ_ALTERNATIVE) {
+		dev_warn(ctx->dev, "%s: invalid hs_clk=%d for FFC\n", __func__, hs_clk);
+	} else if (ctx->dsi_hs_clk != hs_clk) {
+		dev_info(ctx->dev, "%s: updating for hs_clk=%d\n", __func__, hs_clk);
+		ctx->dsi_hs_clk = hs_clk;
+
+		/* Update FFC */
+		EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x37, 0xC5);
+		if (hs_clk == MIPI_DSI_FREQ_DEFAULT)
+			EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x10, 0x50, 0x05, 0x4D, 0x31, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00);
+		else /* MIPI_DSI_FREQ_ALTERNATIVE */
+			EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x10, 0x50, 0x05, 0x4E, 0x74, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00, 0x4E, 0x74, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00, 0x4E, 0x74, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00, 0x4E, 0x74, 0x40, 0x00,
+						0x40, 0x00, 0x40, 0x00);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, lock_cmd_f0);
+	}
+
+	/* FFC on */
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x36, 0xC5);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x11);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+
+	DPU_ATRACE_END(__func__);
+}
+
 static const struct exynos_display_underrun_param underrun_param = {
 	.te_idle_us = 350,
 	.te_var = 1,
@@ -2094,6 +2181,7 @@ static const u32 hk3_bl_range[] = {
 }
 
 static const struct exynos_panel_mode hk3_modes[] = {
+	/* MRR modes */
 #ifdef PANEL_FACTORY_BUILD
 	{
 		.mode = {
@@ -2332,6 +2420,129 @@ static const struct exynos_panel_mode hk3_modes[] = {
 			.falling_edge = HK3_TE2_FALLING_EDGE_OFFSET,
 		},
 		.idle_mode = IDLE_MODE_ON_INACTIVITY,
+	},
+	/* VRR modes (change hsa and hbp to avoid conflicting to MRR modes) */
+	{
+		.mode = {
+			.name = "1344x2992@120HS",
+			.clock = 541764,
+			.hdisplay = 1344,
+			.hsync_start = 1344 + 80, // add hfp
+			.hsync_end = 1344 + 80 + 26, // add hsa
+			.htotal = 1344 + 80 + 26 + 40, // add hbp
+			.vdisplay = 2992,
+			.vsync_start = 2992 + 12, // add vfp
+			.vsync_end = 2992 + 12 + 4, // add vsa
+			.vtotal = 2992 + 12 + 4 + 22, // add vbp
+			.flags = 0,
+			.type = DRM_MODE_TYPE_VRR, // VRR mode
+			.width_mm = 70,
+			.height_mm = 155,
+		},
+		.exynos_mode = {
+			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+			.vblank_usec = 120,
+			.te_usec = HK3_TE_USEC_120HZ,
+			.bpc = 8,
+			.dsc = HK3_WQHD_DSC,
+			.underrun_param = &underrun_param,
+		},
+		.te2_timing = {
+			.rising_edge = HK3_TE2_RISING_EDGE_OFFSET,
+			.falling_edge = HK3_TE2_FALLING_EDGE_OFFSET,
+		},
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
+	},
+	{
+		.mode = {
+			.name = "1008x2244@120HS",
+			.clock = 314640,
+			.hdisplay = 1008,
+			.hsync_start = 1008 + 80, // add hfp
+			.hsync_end = 1008 + 80 + 26, // add hsa
+			.htotal = 1008 + 80 + 26 + 36, // add hbp
+			.vdisplay = 2244,
+			.vsync_start = 2244 + 12, // add vfp
+			.vsync_end = 2244 + 12 + 4, // add vsa
+			.vtotal = 2244 + 12 + 4 + 20, // add vbp
+			.flags = 0,
+			.type = DRM_MODE_TYPE_VRR, // VRR mode
+			.width_mm = 70,
+			.height_mm = 155,
+		},
+		.exynos_mode = {
+			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+			.vblank_usec = 120,
+			.te_usec = HK3_TE_USEC_120HZ,
+			.bpc = 8,
+			.dsc = HK3_FHD_DSC,
+			.underrun_param = &underrun_param,
+		},
+		.te2_timing = {
+			.rising_edge = HK3_TE2_RISING_EDGE_OFFSET,
+			.falling_edge = HK3_TE2_FALLING_EDGE_OFFSET,
+		},
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
+	},
+	{
+		.mode = {
+			.name = "1344x2992@60NS",
+			.clock = 270882,
+			.hdisplay = 1344,
+			.hsync_start = 1344 + 80, // add hfp
+			.hsync_end = 1344 + 80 + 26, // add hsa
+			.htotal = 1344 + 80 + 26 + 40, // add hbp
+			.vdisplay = 2992,
+			.vsync_start = 2992 + 12, // add vfp
+			.vsync_end = 2992 + 12 + 4, // add vsa
+			.vtotal = 2992 + 12 + 4 + 22, // add vbp
+			.flags = DRM_MODE_FLAG_NS, // NS mode
+			.type = DRM_MODE_TYPE_VRR, // VRR mode
+			.width_mm = 70,
+			.height_mm = 155,
+		},
+		.exynos_mode = {
+			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+			.vblank_usec = 120,
+			.bpc = 8,
+			.dsc = HK3_WQHD_DSC,
+			.underrun_param = &underrun_param,
+		},
+		.te2_timing = {
+			.rising_edge = HK3_TE2_RISING_EDGE_OFFSET,
+			.falling_edge = HK3_TE2_FALLING_EDGE_OFFSET_NS,
+		},
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
+	},
+	{
+		.mode = {
+			.name = "1008x2244@60NS",
+			.clock = 157320,
+			.hdisplay = 1008,
+			.hsync_start = 1008 + 80, // add hfp
+			.hsync_end = 1008 + 80 + 24, // add hsa
+			.htotal = 1008 + 80 + 24 + 38, // add hbp
+			.vdisplay = 2244,
+			.vsync_start = 2244 + 12, // add vfp
+			.vsync_end = 2244 + 12 + 4, // add vsa
+			.vtotal = 2244 + 12 + 4 + 20, // add vbp
+			.flags = DRM_MODE_FLAG_NS, // NS mode
+			.type = DRM_MODE_TYPE_VRR, // VRR mode
+			.width_mm = 70,
+			.height_mm = 155,
+		},
+		.exynos_mode = {
+			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+			.vblank_usec = 120,
+			.bpc = 8,
+			.dsc = HK3_FHD_DSC,
+			.underrun_param = &underrun_param,
+		},
+		.te2_timing = {
+			.rising_edge = HK3_TE2_RISING_EDGE_OFFSET,
+			.falling_edge = HK3_TE2_FALLING_EDGE_OFFSET_NS,
+		},
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
 #endif
 };
@@ -2614,6 +2825,8 @@ static const struct exynos_panel_funcs hk3_exynos_funcs = {
 	.get_te_usec = hk3_get_te_usec,
 	.set_acl_mode = hk3_set_acl_mode,
 	.run_normal_mode_work = hk3_normal_mode_work,
+	.pre_update_ffc = hk3_pre_update_ffc,
+	.update_ffc = hk3_update_ffc,
 };
 
 const struct brightness_capability hk3_brightness_capability = {
@@ -2679,6 +2892,7 @@ const struct exynos_panel_desc google_hk3 = {
 	.lhbm_effective_delay_frames = 1,
 	.lhbm_post_cmd_delay_frames = 1,
 	.normal_mode_work_delay_ms = 30000,
+	.default_dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT,
 	.reset_timing_ms = {1, 1, 5},
 	.reg_ctrl_enable = {
 		{PANEL_REG_ID_VDDI, 1},
