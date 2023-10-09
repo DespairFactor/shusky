@@ -15,6 +15,7 @@
 			#thermal-sensor-cells = <1>;
 			adc_chan_en = /bits/ 8 <0xff>;
 			stats_en = /bits/ 8 <0xff>;
+			filter_spurious_samples = <1>;
 		};
 	};
 };
