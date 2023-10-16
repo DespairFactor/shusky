@@ -37,4 +37,4 @@ if [ "${#}" = "0" ]; then
   fi
 fi
 
-exec tools/bazel run ${parameters} --config=stamp --config=shusky --config=fast //private/devices/google/shusky:zuma_shusky_dist "$@"
+exec tools/bazel run --config=use_source_tree_aosp --config=stamp --config=no_download_gki --config=fast --config=shusky //private/devices/google/shusky:zuma_shusky_dist "$@"
