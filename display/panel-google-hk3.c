@@ -2069,8 +2069,7 @@ static bool hk3_is_mode_seamless(const struct exynos_panel *ctx,
 	const struct drm_display_mode *n = &pmode->mode;
 
 	/* seamless mode set can happen if active region resolution is same */
-	return (c->vdisplay == n->vdisplay) && (c->hdisplay == n->hdisplay) &&
-	       (c->flags == n->flags);
+	return (c->vdisplay == n->vdisplay) && (c->hdisplay == n->hdisplay);
 }
 
 static int hk3_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
@@ -2494,8 +2493,8 @@ static const struct exynos_panel_mode hk3_modes[] = {
 			.vsync_start = 2992 + 12, // add vfp
 			.vsync_end = 2992 + 12 + 4, // add vsa
 			.vtotal = 2992 + 12 + 4 + 22, // add vbp
-			.flags = DRM_MODE_FLAG_TE_FREQ_X1 | DRM_MODE_TYPE_PREFERRED,
-			.type = DRM_MODE_TYPE_VRR, // VRR mode
+			.flags = DRM_MODE_FLAG_TE_FREQ_X1,
+			.type = DRM_MODE_TYPE_VRR | DRM_MODE_TYPE_PREFERRED, // VRR mode
 			.width_mm = 70,
 			.height_mm = 155,
 		},
