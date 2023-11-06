@@ -142,7 +142,7 @@ struct hk3_panel {
 	bool force_changeable_te2;
 	/** @hw_acl_setting: automatic current limiting setting */
 	u8 hw_acl_setting;
-	/** @hw_dbv: indicate the current dbv */
+	/** @hw_dbv: indicate the current dbv, will be zero after sleep in/out */
 	u16 hw_dbv;
 	/** @hw_za_enabled: whether zonal attenuation is enabled */
 	bool hw_za_enabled;
@@ -337,7 +337,8 @@ static const u8 sync_begin[] = { 0xE4, 0x00, 0x2C, 0x2C, 0xA2, 0x00, 0x00 };
 static const u8 sync_end[] = { 0xE4, 0x00, 0x2C, 0x2C, 0x82, 0x00, 0x00 };
 static const u8 aod_on[] = { MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24 };
 static const u8 aod_off[] = { MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x20 };
-static const u8 min_dbv[] = { MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x00, 0x04 };
+/* 50 nits */
+static const u8 aod_dbv[] = { MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x55 };
 
 static const struct exynos_dsi_cmd hk3_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD0(unlock_cmd_f0),
@@ -345,7 +346,6 @@ static const struct exynos_dsi_cmd hk3_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x52, 0x94),
 	EXYNOS_DSI_CMD_SEQ(0x94, 0x01, 0x07, 0x6A, 0x02),
 	EXYNOS_DSI_CMD0(lock_cmd_f0),
-	EXYNOS_DSI_CMD0(min_dbv),
 };
 
 static const struct exynos_dsi_cmd hk3_lp_high_cmds[] = {
@@ -354,7 +354,6 @@ static const struct exynos_dsi_cmd hk3_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x52, 0x94),
 	EXYNOS_DSI_CMD_SEQ(0x94, 0x00, 0x07, 0x6A, 0x02),
 	EXYNOS_DSI_CMD0(lock_cmd_f0),
-	EXYNOS_DSI_CMD0(min_dbv),
 };
 
 static const struct exynos_binned_lp hk3_binned_lp[] = {
@@ -952,10 +951,14 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	 * new frame commit will correct it if the guess is wrong.
 	 */
 	ctx->panel_idle_vrefresh = idle_vrefresh;
-
 	hk3_update_panel_feat(ctx, pmode, false);
-	te2_state_changed(ctx->bl);
-	backlight_state_changed(ctx->bl);
+
+	/* TODO: (b/303738012) perform notifications asyncly for P24*/
+	/* Prevent sysfs_notify from resolution switch */
+	if (ctx->mode_in_progress == MODE_RES_AND_RR_IN_PROGRESS)
+		schedule_work(&ctx->state_notify);
+	else
+		backlight_state_changed(ctx->bl);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
 }
@@ -1504,7 +1507,7 @@ static void hk3_set_lp_mode(struct exynos_panel *ctx, const struct exynos_panel_
 	DPU_ATRACE_BEGIN(__func__);
 
 	hk3_disable_panel_feat(ctx, pmode, vrefresh);
-	if (panel_enabled)  {
+	if (panel_enabled) {
 		/* init sequence has sent display-off command already */
 		if (!hk3_is_peak_vrefresh(vrefresh, is_ns) && is_changeable_te)
 			hk3_wait_for_vsync_done_changeable(ctx, vrefresh, is_ns);
@@ -1512,6 +1515,8 @@ static void hk3_set_lp_mode(struct exynos_panel *ctx, const struct exynos_panel_
 			hk3_wait_for_vsync_done(ctx, vrefresh, is_ns);
 		exynos_panel_send_cmd_set(ctx, &hk3_display_off_cmd_set);
 	}
+	/* display should be off here, set dbv before entering lp mode */
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, aod_dbv);
 	hk3_wait_for_vsync_done(ctx, vrefresh, false);
 
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, aod_on);
@@ -2069,8 +2074,7 @@ static bool hk3_is_mode_seamless(const struct exynos_panel *ctx,
 	const struct drm_display_mode *n = &pmode->mode;
 
 	/* seamless mode set can happen if active region resolution is same */
-	return (c->vdisplay == n->vdisplay) && (c->hdisplay == n->hdisplay) &&
-	       (c->flags == n->flags);
+	return (c->vdisplay == n->vdisplay) && (c->hdisplay == n->hdisplay);
 }
 
 static int hk3_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
@@ -2214,6 +2218,13 @@ static void hk3_update_ffc(struct exynos_panel *ctx, unsigned int hs_clk)
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
 
 	DPU_ATRACE_END(__func__);
+}
+
+static void hk3_get_pwr_vreg(struct exynos_panel *ctx, char *buf, size_t len)
+{
+	struct hk3_panel *spanel = to_spanel(ctx);
+
+	strlcpy(buf, spanel->hw_vreg, len);
 }
 
 static const struct exynos_display_underrun_param underrun_param = {
@@ -2481,21 +2492,21 @@ static const struct exynos_panel_mode hk3_modes[] = {
 		},
 		.idle_mode = IDLE_MODE_ON_INACTIVITY,
 	},
-	/* VRR modes (change hsa and hbp to avoid conflicting to MRR modes) */
+	/* VRR modes*/
 	{
 		.mode = {
 			.name = "1344x2992@120HS",
 			.clock = 541764,
 			.hdisplay = 1344,
 			.hsync_start = 1344 + 80, // add hfp
-			.hsync_end = 1344 + 80 + 26, // add hsa
-			.htotal = 1344 + 80 + 26 + 40, // add hbp
+			.hsync_end = 1344 + 80 + 24, // add hsa
+			.htotal = 1344 + 80 + 24 + 42, // add hbp
 			.vdisplay = 2992,
 			.vsync_start = 2992 + 12, // add vfp
 			.vsync_end = 2992 + 12 + 4, // add vsa
 			.vtotal = 2992 + 12 + 4 + 22, // add vbp
-			.flags = 0,
-			.type = DRM_MODE_TYPE_VRR, // VRR mode
+			.flags = DRM_MODE_FLAG_TE_FREQ_X1,
+			.type = DRM_MODE_TYPE_VRR | DRM_MODE_TYPE_PREFERRED, // VRR mode
 			.width_mm = 70,
 			.height_mm = 155,
 		},
@@ -2519,13 +2530,13 @@ static const struct exynos_panel_mode hk3_modes[] = {
 			.clock = 314640,
 			.hdisplay = 1008,
 			.hsync_start = 1008 + 80, // add hfp
-			.hsync_end = 1008 + 80 + 26, // add hsa
-			.htotal = 1008 + 80 + 26 + 36, // add hbp
+			.hsync_end = 1008 + 80 + 24, // add hsa
+			.htotal = 1008 + 80 + 24 + 38, // add hbp
 			.vdisplay = 2244,
 			.vsync_start = 2244 + 12, // add vfp
 			.vsync_end = 2244 + 12 + 4, // add vsa
 			.vtotal = 2244 + 12 + 4 + 20, // add vbp
-			.flags = 0,
+			.flags = DRM_MODE_FLAG_TE_FREQ_X1,
 			.type = DRM_MODE_TYPE_VRR, // VRR mode
 			.width_mm = 70,
 			.height_mm = 155,
@@ -2550,13 +2561,13 @@ static const struct exynos_panel_mode hk3_modes[] = {
 			.clock = 270882,
 			.hdisplay = 1344,
 			.hsync_start = 1344 + 80, // add hfp
-			.hsync_end = 1344 + 80 + 26, // add hsa
-			.htotal = 1344 + 80 + 26 + 40, // add hbp
+			.hsync_end = 1344 + 80 + 24, // add hsa
+			.htotal = 1344 + 80 + 24 + 42, // add hbp
 			.vdisplay = 2992,
 			.vsync_start = 2992 + 12, // add vfp
 			.vsync_end = 2992 + 12 + 4, // add vsa
 			.vtotal = 2992 + 12 + 4 + 22, // add vbp
-			.flags = DRM_MODE_FLAG_NS, // NS mode
+			.flags = DRM_MODE_FLAG_NS | DRM_MODE_FLAG_TE_FREQ_X1, // NS mode
 			.type = DRM_MODE_TYPE_VRR, // VRR mode
 			.width_mm = 70,
 			.height_mm = 155,
@@ -2586,7 +2597,7 @@ static const struct exynos_panel_mode hk3_modes[] = {
 			.vsync_start = 2244 + 12, // add vfp
 			.vsync_end = 2244 + 12 + 4, // add vsa
 			.vtotal = 2244 + 12 + 4 + 20, // add vbp
-			.flags = DRM_MODE_FLAG_NS, // NS mode
+			.flags = DRM_MODE_FLAG_NS | DRM_MODE_FLAG_TE_FREQ_X1, // NS mode
 			.type = DRM_MODE_TYPE_VRR, // VRR mode
 			.width_mm = 70,
 			.height_mm = 155,
@@ -2888,6 +2899,7 @@ static const struct exynos_panel_funcs hk3_exynos_funcs = {
 	.run_normal_mode_work = hk3_normal_mode_work,
 	.pre_update_ffc = hk3_pre_update_ffc,
 	.update_ffc = hk3_update_ffc,
+	.get_pwr_vreg = hk3_get_pwr_vreg,
 };
 
 const struct brightness_capability hk3_brightness_capability = {
@@ -2942,6 +2954,7 @@ const struct exynos_panel_desc google_hk3 = {
 	.num_binned_lp = ARRAY_SIZE(hk3_binned_lp),
 	.is_panel_idle_supported = true,
 	.no_lhbm_rr_constraints = true,
+	.use_async_notify = true,
 	.panel_func = &hk3_drm_funcs,
 	.exynos_panel_func = &hk3_exynos_funcs,
 	.lhbm_effective_delay_frames = 1,
