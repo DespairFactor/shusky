@@ -885,8 +885,7 @@ static void gs_hk3_update_refresh_mode(struct gs_panel *ctx, const struct gs_pan
 	 */
 	ctx->idle_data.panel_idle_vrefresh = idle_vrefresh;
 	gs_hk3_set_panel_feat(ctx, vrefresh, idle_vrefresh, spanel->feat, false);
-	te2_state_changed(ctx->bl);
-	backlight_state_changed(ctx->bl);
+	schedule_work(&ctx->state_notify);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
 }
@@ -969,7 +968,7 @@ static bool gs_hk3_set_self_refresh(struct gs_panel *ctx, bool enable)
 	if (pmode->gs_mode.is_lp_mode) {
 		/* set 1Hz while self refresh is active, otherwise clear it */
 		idle_data->panel_idle_vrefresh = enable ? 1 : 0;
-		backlight_state_changed(ctx->bl);
+		schedule_work(&ctx->state_notify);
 		return false;
 	}
 

@@ -863,17 +863,6 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx, const u32 vrefresh,
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);;
 }
 
-static void hk3_update_vrr_panel_feat(struct exynos_panel *ctx,
-				      unsigned long *feat, u32 vrefresh)
-{
-	set_bit(FEAT_EARLY_EXIT, feat);
-	clear_bit(FEAT_FRAME_AUTO, feat);
-	if (vrefresh == 60)
-		set_bit(FEAT_OP_NS, feat);
-	else
-		clear_bit(FEAT_OP_NS, feat);
-}
-
 /**
  * hk3_disable_panel_feat - set the panel at the state of powering up except refresh rate
  * @ctx: exynos_panel struct
@@ -899,7 +888,12 @@ static void hk3_update_panel_feat(struct exynos_panel *ctx,
 
 	/* Manual 1Hz + fixed TE + early exit for VRR modes */
 	if (vrr_mode) {
-		hk3_update_vrr_panel_feat(ctx, spanel->feat, vrefresh);
+		set_bit(FEAT_EARLY_EXIT, spanel->feat);
+		clear_bit(FEAT_FRAME_AUTO, spanel->feat);
+		if (pmode->mode.type & DRM_MODE_FLAG_NS)
+			set_bit(FEAT_OP_NS, spanel->feat);
+		else
+			clear_bit(FEAT_OP_NS, spanel->feat);
 		idle_vrefresh = 0;
 		vrefresh = 1;
 	}
@@ -952,13 +946,7 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	 */
 	ctx->panel_idle_vrefresh = idle_vrefresh;
 	hk3_update_panel_feat(ctx, pmode, false);
-
-	/* TODO: (b/303738012) perform notifications asyncly for P24*/
-	/* Prevent sysfs_notify from resolution switch */
-	if (ctx->mode_in_progress == MODE_RES_AND_RR_IN_PROGRESS)
-		schedule_work(&ctx->state_notify);
-	else
-		backlight_state_changed(ctx->bl);
+	schedule_work(&ctx->state_notify);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
 }
@@ -1067,7 +1055,7 @@ static bool hk3_set_self_refresh(struct exynos_panel *ctx, bool enable)
 	if (pmode->exynos_mode.is_lp_mode) {
 		/* set 1Hz while self refresh is active, otherwise clear it */
 		ctx->panel_idle_vrefresh = enable ? 1 : 0;
-		backlight_state_changed(ctx->bl);
+		schedule_work(&ctx->state_notify);
 		return false;
 	}
 
@@ -1500,9 +1488,18 @@ static void hk3_set_lp_mode(struct exynos_panel *ctx, const struct exynos_panel_
 	bool is_changeable_te = !test_bit(FEAT_EARLY_EXIT, spanel->feat);
 	bool is_ns = test_bit(FEAT_OP_NS, spanel->feat);
 	bool panel_enabled = is_panel_enabled(ctx);
-	u32 vrefresh = panel_enabled ? spanel->hw_vrefresh : 60;
+	u32 vrefresh;
 
 	dev_dbg(ctx->dev, "%s: panel: %s\n", __func__, panel_enabled ? "ON" : "OFF");
+
+	if (panel_enabled) {
+		if (is_vrr_mode(ctx->current_mode))
+			vrefresh = is_ns ? 60 : 120;
+		else
+			vrefresh = spanel->hw_vrefresh;
+	} else {
+		vrefresh = 60;
+	}
 
 	DPU_ATRACE_BEGIN(__func__);
 
@@ -1819,6 +1816,7 @@ static int hk3_disable(struct drm_panel *panel)
 
 	/* skip disable sequence if going through RRS */
 	if (ctx->mode_in_progress == MODE_RES_IN_PROGRESS ||
+	    ctx->mode_in_progress == MODE_RR_IN_PROGRESS ||
 	    ctx->mode_in_progress == MODE_RES_AND_RR_IN_PROGRESS) {
 		dev_dbg(ctx->dev, "%s: RRS in progress, skip\n", __func__);
 		return 0;
@@ -2227,6 +2225,28 @@ static void hk3_get_pwr_vreg(struct exynos_panel *ctx, char *buf, size_t len)
 	strlcpy(buf, spanel->hw_vreg, len);
 }
 
+static void hk3_refresh_ctrl(struct exynos_panel *ctx, u32 ctrl)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	if (!is_vrr_mode(pmode)) {
+		dev_warn(ctx->dev, "%s: refresh control should be called for vrr mode only\n",
+				__func__);
+		return;
+	}
+
+	if (ctrl & PANEL_REFRESH_CTRL_FI) {
+		dev_dbg(ctx->dev, "%s: performing a frame insertion\n", __func__);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF7, 0x02);
+		EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+	}
+
+	DPU_ATRACE_END(__func__);
+}
+
 static const struct exynos_display_underrun_param underrun_param = {
 	.te_idle_us = 350,
 	.te_var = 1,
@@ -2495,7 +2515,7 @@ static const struct exynos_panel_mode hk3_modes[] = {
 	/* VRR modes*/
 	{
 		.mode = {
-			.name = "1344x2992@120HS",
+			.name = "1344x2992x120@120HS",
 			.clock = 541764,
 			.hdisplay = 1344,
 			.hsync_start = 1344 + 80, // add hfp
@@ -2526,7 +2546,7 @@ static const struct exynos_panel_mode hk3_modes[] = {
 	},
 	{
 		.mode = {
-			.name = "1008x2244@120HS",
+			.name = "1008x2244x120@120HS",
 			.clock = 314640,
 			.hdisplay = 1008,
 			.hsync_start = 1008 + 80, // add hfp
@@ -2557,7 +2577,7 @@ static const struct exynos_panel_mode hk3_modes[] = {
 	},
 	{
 		.mode = {
-			.name = "1344x2992@60NS",
+			.name = "1344x2992x60@60NS",
 			.clock = 270882,
 			.hdisplay = 1344,
 			.hsync_start = 1344 + 80, // add hfp
@@ -2587,7 +2607,7 @@ static const struct exynos_panel_mode hk3_modes[] = {
 	},
 	{
 		.mode = {
-			.name = "1008x2244@60NS",
+			.name = "1008x2244x60@60NS",
 			.clock = 157320,
 			.hdisplay = 1008,
 			.hsync_start = 1008 + 80, // add hfp
@@ -2900,6 +2920,7 @@ static const struct exynos_panel_funcs hk3_exynos_funcs = {
 	.pre_update_ffc = hk3_pre_update_ffc,
 	.update_ffc = hk3_update_ffc,
 	.get_pwr_vreg = hk3_get_pwr_vreg,
+	.refresh_ctrl = hk3_refresh_ctrl,
 };
 
 const struct brightness_capability hk3_brightness_capability = {
