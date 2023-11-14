@@ -2323,7 +2323,6 @@ static const struct gs_panel_desc gs_hk3_desc = {
 	/* supported HDR format bitmask : 1(DOLBY_VISION), 2(HDR10), 3(HLG) */
 	.hdr_formats = BIT(2) | BIT(3),
 	.lhbm_desc = &gs_hk3_lhbm_desc,
-	.delay_dsc_reg_init_us = 10000,
 	.dbv_extra_frame = true,
 
 	.bl_range = hk3_bl_range,
