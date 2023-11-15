@@ -1082,7 +1082,7 @@ static void gs_hk3_write_display_mode(struct gs_panel *ctx, const struct drm_dis
 	if (GS_IS_HBM_ON(ctx->hbm_mode))
 		val |= HK3_WRCTRLD_HBM_BIT;
 
-	if (ctx->hbm.local_hbm.enabled)
+	if (!gs_is_local_hbm_disabled(ctx))
 		val |= HK3_WRCTRLD_LOCAL_HBM_BIT;
 
 	if (ctx->dimming_on)
@@ -1090,7 +1090,7 @@ static void gs_hk3_write_display_mode(struct gs_panel *ctx, const struct drm_dis
 
 	dev_dbg(ctx->dev, "%s(wrctrld:%#x, hbm: %s, dimming: %s local_hbm: %s)\n", __func__, val,
 		GS_IS_HBM_ON(ctx->hbm_mode) ? "on" : "off", ctx->dimming_on ? "on" : "off",
-		ctx->hbm.local_hbm.enabled ? "on" : "off");
+		!gs_is_local_hbm_disabled(ctx) ? "on" : "off");
 
 	GS_DCS_BUF_ADD_CMD_AND_FLUSH(ctx->dev, MIPI_DCS_WRITE_CONTROL_DISPLAY, val);
 }
