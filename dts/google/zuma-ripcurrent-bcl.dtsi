@@ -49,6 +49,7 @@
 				aur_clkdivstep = <0x1>;
 				batoilo_lower = <3800>;
 				batoilo_upper = <6800>;
+				batoilo_trig_lvl = <5000>;
 				odpm_ratio = <3>;
 				gpios = <&gpa9 5 0>,		/* VDROOP1 */
 					<&gpa9 6 0>,		/* VDROOP2 */

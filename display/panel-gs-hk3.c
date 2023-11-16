@@ -1896,7 +1896,7 @@ static const struct gs_panel_mode_array gs_hk3_modes = {
 	{
 		.mode = {
 			.name = "1344x2992x1",
-			DRM_MODE_TIMING(1, 1344, 80, 24, 52, 2922, 12, 4, 22),
+			DRM_MODE_TIMING(1, 1344, 80, 24, 52, 2992, 12, 4, 22),
 			.flags = 0,
 			.width_mm = HK3_WIDTH_MM,
 			.height_mm = HK3_HEIGHT_MM,
@@ -1917,7 +1917,7 @@ static const struct gs_panel_mode_array gs_hk3_modes = {
 	{
 		.mode = {
 			.name = "1344x2992x5",
-			DRM_MODE_TIMING(5, 1344, 80, 24, 52, 2922, 12, 4, 22),
+			DRM_MODE_TIMING(5, 1344, 80, 24, 52, 2992, 12, 4, 22),
 			.flags = 0,
 			.width_mm = HK3_WIDTH_MM,
 			.height_mm = HK3_HEIGHT_MM,
@@ -1938,7 +1938,7 @@ static const struct gs_panel_mode_array gs_hk3_modes = {
 	{
 		.mode = {
 			.name = "1344x2992x10",
-			DRM_MODE_TIMING(10, 1344, 80, 24, 42, 2922, 12, 4, 22),
+			DRM_MODE_TIMING(10, 1344, 80, 24, 42, 2992, 12, 4, 22),
 			.flags = 0,
 			.width_mm = HK3_WIDTH_MM,
 			.height_mm = HK3_HEIGHT_MM,
@@ -1959,7 +1959,7 @@ static const struct gs_panel_mode_array gs_hk3_modes = {
 	{
 		.mode = {
 			.name = "1344x2992x30",
-			DRM_MODE_TIMING(30, 1344, 80, 22, 44, 2922, 12, 4, 22),
+			DRM_MODE_TIMING(30, 1344, 80, 22, 44, 2992, 12, 4, 22),
 			.flags = 0,
 			.width_mm = HK3_WIDTH_MM,
 			.height_mm = HK3_HEIGHT_MM,
@@ -1981,7 +1981,7 @@ static const struct gs_panel_mode_array gs_hk3_modes = {
 	{
 		.mode = {
 			.name = "1344x2992x60",
-			DRM_MODE_TIMING(60, 1344, 80, 24, 42, 2922, 12, 4, 22),
+			DRM_MODE_TIMING(60, 1344, 80, 24, 42, 2992, 12, 4, 22),
 			.flags = 0,
 			.type = DRM_MODE_TYPE_PREFERRED,
 			.width_mm = HK3_WIDTH_MM,
