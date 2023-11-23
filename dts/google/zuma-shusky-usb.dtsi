@@ -49,7 +49,7 @@
 	};
 
 	repeater_tune3 {
-		tune_name = "u_hs_rx_pre_emphasus_p1";
+		tune_name = "u_hs_tx_pre_emphasus_p1";
 		tune_value = <0x71 0x2c 0x0 0xff>;
 	};
 
