@@ -871,6 +871,7 @@ static void hk3_set_panel_feat(struct exynos_panel *ctx, const u32 vrefresh,
 /**
  * hk3_disable_panel_feat - set the panel at the state of powering up except refresh rate
  * @ctx: exynos_panel struct
+ * @pmode: exynos_panel_mode stuct
  * @vrefresh: refresh rate
  * This function disables HBM, switches to HS, sets manual mode and changeable TE.
  */
