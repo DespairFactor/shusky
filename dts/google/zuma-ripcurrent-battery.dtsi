@@ -72,7 +72,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	status = "okay";
-	clock-frequency = <1000000>;
+	clock-frequency = <950000>;
 #include "google-dts-base/zuma-max777xx.dtsi"
 };
 
