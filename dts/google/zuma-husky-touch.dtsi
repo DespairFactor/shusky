@@ -27,7 +27,7 @@
 
 	goog,vrr-enabled;
 	goog,vrr-display-rate = /bits/ 32 <60 120>;
-	goog,vrr-touch-rate = /bits/ 32 <120 240>;
+	goog,vrr-touch-rate = /bits/ 32 <240 240>;
 	goog,vrr-up-delay = <0>;
 	goog,vrr-down-delay = <2>;
 
