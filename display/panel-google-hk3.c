@@ -1718,15 +1718,19 @@ static int hk3_enable(struct drm_panel *panel)
 		exynos_panel_wait_for_vsync_done(ctx, te_width_us,
 			EXYNOS_VREFRESH_TO_PERIOD_USEC(ctx->last_rr));
 	}
-	PANEL_SEQ_LABEL_BEGIN("init");
+
 	/* DSC related configuration */
+	PANEL_SEQ_LABEL_BEGIN("pps");
 	drm_dsc_pps_payload_pack(&pps_payload,
 				 is_fhd ? &fhd_pps_config : &wqhd_pps_config);
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01);
 	EXYNOS_PPS_WRITE_BUF(ctx, &pps_payload);
+	PANEL_SEQ_LABEL_END("pps");
 
 	if (needs_reset) {
+		PANEL_SEQ_LABEL_BEGIN("init_cmd");
 		exynos_panel_send_cmd_set(ctx, &hk3_init_cmd_set);
+		PANEL_SEQ_LABEL_END("init_cmd");
 		if (ctx->panel_rev == PANEL_REV_PROTO1)
 			hk3_lhbm_luminance_opr_setting(ctx);
 		if (ctx->panel_rev >= PANEL_REV_DVT1)
@@ -1735,7 +1739,6 @@ static int hk3_enable(struct drm_panel *panel)
 		spanel->is_pixel_off = false;
 		ctx->dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT;
 	}
-	PANEL_SEQ_LABEL_END("init");
 
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xC3, is_fhd ? 0x0D : 0x0C);
