@@ -922,7 +922,7 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	 */
 	if (ctx->mode_in_progress == MODE_RES_IN_PROGRESS) {
 		dev_dbg(ctx->dev, "%s: RRS in progress without RR change, skip\n", __func__);
-		notify_panel_mode_changed(ctx);
+		notify_panel_mode_changed(ctx, false);
 		return;
 	}
 
@@ -954,7 +954,7 @@ static void hk3_update_refresh_mode(struct exynos_panel *ctx,
 	ctx->panel_idle_vrefresh = idle_vrefresh;
 	hk3_update_panel_feat(ctx, pmode, false);
 
-	notify_panel_mode_changed(ctx);
+	notify_panel_mode_changed(ctx, false);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
 }
@@ -968,7 +968,7 @@ static void hk3_change_frequency(struct exynos_panel *ctx,
 	if (vrefresh > ctx->op_hz) {
 		/* resolution may has been changed but refresh rate */
 		if (ctx->mode_in_progress == MODE_RES_AND_RR_IN_PROGRESS)
-			notify_panel_mode_changed(ctx);
+			notify_panel_mode_changed(ctx, false);
 		dev_err(ctx->dev,
 		"invalid freq setting: op_hz=%u, vrefresh=%u\n",
 		ctx->op_hz, vrefresh);
@@ -1066,7 +1066,7 @@ static bool hk3_set_self_refresh(struct exynos_panel *ctx, bool enable)
 	if (pmode->exynos_mode.is_lp_mode) {
 		/* set 1Hz while self refresh is active, otherwise clear it */
 		ctx->panel_idle_vrefresh = enable ? 1 : 0;
-		notify_panel_mode_changed(ctx);
+		notify_panel_mode_changed(ctx, true);
 		return false;
 	}
 
