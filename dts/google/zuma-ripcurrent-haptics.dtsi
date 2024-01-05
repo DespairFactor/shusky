@@ -120,15 +120,15 @@
 		interrupt-parent = <&gpa6>;
 		interrupts = <3 0 0>;
 
-		reset-gpios = <&gph2 3 0>;
+		reset-gpios = <&gph2 3 GPIO_ACTIVE_LOW>;
 
 		cirrus,bst-dcm-en = <0>;
 		cirrus,vibe-state;
 		cirrus,vpbr-enable;
-		cirrus,vpbr-thld-mv = <2800>;		/* 2.8V */
+		cirrus,vpbr-thld-uv = <2800000>;	/* 2.8V */
 		cirrus,bst-expl-mode-disable;
 		cirrus,bst-ipk-microamp = <3500000>;	/* 3.5A */
-		cirrus,boost-ctl-microvolt = <11000000>;/* 11V */
+		cirrus,bst-ctl-microvolt = <11000000>;	/* 11V */
 		cirrus,f0-default = <0x244000>;		/* 145 Hz */
 		cirrus,redc-default = <0x68000>;	/* 13 Ohm */
 
@@ -153,15 +153,15 @@
 		interrupt-parent = <&gpa5>;
 		interrupts = <0 0 0>;
 
-		reset-gpios = <&gpp16 2 0>;
+		reset-gpios = <&gpp16 2 GPIO_ACTIVE_LOW>;
 
 		cirrus,bst-dcm-en = <0>;
 		cirrus,vibe-state;
 		cirrus,vpbr-enable;
-		cirrus,vpbr-thld-mv = <2800>;		/* 2.8V */
+		cirrus,vpbr-thld-uv = <2800000>;	/* 2.8V */
 		cirrus,bst-expl-mode-disable;
 		cirrus,bst-ipk-microamp = <3500000>;	/* 3.5A */
-		cirrus,boost-ctl-microvolt = <11000000>;/* 11V */
+		cirrus,bst-ctl-microvolt = <11000000>;	/* 11V */
 		cirrus,f0-default = <0x244000>;		/* 145 Hz */
 		cirrus,redc-default = <0x68000>;	/* 13 Ohm */
 
