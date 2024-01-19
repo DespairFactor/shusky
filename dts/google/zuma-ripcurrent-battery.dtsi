@@ -9,20 +9,6 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include "google-dts-base/zuma-battery.dtsi"
 
-/ {
-	fragment@battery {
-		target-path = "/";
-		__overlay__ {
-
-			google_bms {
-				nvmem-names = "9-00500";
-				google,bee-name = "9-00500";
-			};
-
-		};
-	};
-};
-
 &pinctrl_0 {
 /* [MAX77759: FG_INTB] > FG_INT_L > [XEINT_21 : SC59845XWE] */
 	if_pmic_fg_irq: if-pmic-fg-irq {
