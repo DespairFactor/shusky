@@ -5,6 +5,7 @@ load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//aosp:modules.bzl", "get_gki_modules_list")
 load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
 load("//build/kernel/kleaf:constants.bzl", "aarch64_outs")
+load("//build/kernel/kleaf:hermetic_tools.bzl", "hermetic_genrule")
 load(
     "//build/kernel/kleaf:kernel.bzl",
     "gki_artifacts",
@@ -106,20 +107,18 @@ filegroup(
     }),
 )
 
-# TODO(b/285605996): Use hermetic_genrule
-genrule(
+hermetic_genrule(
     name = "gki_aarch64_boot",
     srcs = [":gki_aarch64_boot_lz4"],
     outs = ["boot.img"],
     cmd = """
         for f in $(locations :gki_aarch64_boot_lz4); do
             if [[ "$${f##*/}" == "boot-lz4.img" ]]; then
-                $(location //build/kernel:hermetic-tools/mv) $$f $(location boot.img)
+                cp -L $$f $(location boot.img)
                 break
             fi
         done
     """,
-    tools = ["//build/kernel:hermetic-tools/mv"],
 )
 
 _PIXEL_MAKE_GOALS = [
@@ -461,12 +460,10 @@ kernel_unstripped_modules_archive(
     kernel_modules = [":shusky_ext_modules"],
 )
 
-# TODO(b/285605996): Use hermetic_genrule
-genrule(
+hermetic_genrule(
     name = "vendor_kernel_boot_modules.shusky-cat",
     srcs = [
         "vendor_kernel_boot_modules.shusky",
-        "//build/kernel:hermetic-tools/cat",
         "//private/google-modules/soc/gs:vendor_kernel_boot_modules.zuma",
     ],
     outs = [
@@ -477,7 +474,6 @@ genrule(
             $(location //private/google-modules/soc/gs:vendor_kernel_boot_modules.zuma) \\
             > $@
     """,
-    tools = ["//build/kernel:hermetic-tools/cat"],
 )
 
 # Don't load the zram GKI module
