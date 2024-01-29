@@ -4,11 +4,9 @@ load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//aosp:modules.bzl", "get_gki_modules_list")
 load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
-load("//build/kernel/kleaf:constants.bzl", "aarch64_outs")
 load("//build/kernel/kleaf:hermetic_tools.bzl", "hermetic_genrule")
 load(
     "//build/kernel/kleaf:kernel.bzl",
-    "gki_artifacts",
     "kernel_abi",
     "kernel_build",
     "kernel_images",
@@ -24,86 +22,17 @@ load(
     "lto_dependant_kernel_module",
 )
 
-_GKI_AARCH64_MAKE_GOALS = [
-    "Image",
-    "Image.lz4",
-    "Image.gz",
-    "modules",
-]
-
 device_build_configs(
     name = "build.config.shusky",
     base_build_config = ":build.config.shusky",
     device_name = "shusky",
 )
 
-kernel_build(
-    name = "shusky_gki",
-    srcs = glob([
-        "build.config.*",
-        "shusky*.fragment",
-    ]) + [
-        "//aosp-staging:kernel_aarch64_sources",
-        "//private/google-modules/soc/gs:build.config.slider.blktest",
-        "//private/google-modules/soc/gs:build.config.slider.debug_api",
-        "//private/google-modules/soc/gs:build.config.slider.debug_kmemleak",
-        "//private/google-modules/soc/gs:build.config.slider.debug_locking",
-        "//private/google-modules/soc/gs:build.config.slider.debug_memory",
-        "//private/google-modules/soc/gs:build.config.slider.debug_memory_accounting",
-        "//private/google-modules/soc/gs:build.config.slider.kasan",
-        "//private/google-modules/soc/gs:build.config.slider.khwasan",
-    ],
-    outs = aarch64_outs,
-    additional_kmi_symbol_lists = ["//aosp-staging:android/abi_gki_aarch64_pixel"],
-    build_config = ":gki_build_config",
-    collect_unstripped_modules = True,
-    # For building system_dlkm (b/241855743)
-    # Device fragments need to add: '# CONFIG_MODULE_SIG_ALL is not set'
-    implicit_outs = [
-        "scripts/sign-file",
-        "certs/signing_key.pem",
-        "certs/signing_key.x509",
-    ],
-    kmi_symbol_list = "//aosp-staging:android/abi_gki_aarch64",
-    kmi_symbol_list_strict_mode = False,
-    make_goals = _GKI_AARCH64_MAKE_GOALS,
-    module_implicit_outs = get_gki_modules_list("arm64"),
-    strip_modules = True,
-    trim_nonlisted_kmi = True,
-)
-
-kernel_modules_install(
-    name = "shusky_gki_modules_install",
-    kernel_build = "shusky_gki",
-    kernel_modules = [],
-)
-
-kernel_images(
-    name = "shusky_gki_images",
-    build_system_dlkm = True,
-    kernel_build = "shusky_gki",
-    kernel_modules_install = "shusky_gki_modules_install",
-)
-
-gki_artifacts(
-    name = "shusky_gki_artifacts",
-    arch = "arm64",
-    boot_img_sizes = {
-        # Assume BUILD_GKI_BOOT_IMG_SIZE is the following
-        "": "67108864",
-        # Assume BUILD_GKI_BOOT_IMG_LZ4_SIZE is the following
-        "lz4": "53477376",
-        # Assume BUILD_GKI_BOOT_IMG_GZ_SIZE is the following
-        "gz": "47185920",
-    },
-    kernel_build = "shusky_gki",
-)
-
 filegroup(
     name = "gki_aarch64_boot_lz4",
     srcs = select({
         "//private/google-modules/soc/gs:gki_aosp": ["//aosp:kernel_aarch64_gki_artifacts_download_or_build"],
-        "//private/google-modules/soc/gs:gki_aosp_staging": [":shusky_gki_artifacts"],
+        "//private/google-modules/soc/gs:gki_aosp_staging": ["//aosp-staging:kernel_aarch64_gki_artifacts_download_or_build"],
     }),
 )
 
@@ -240,7 +169,7 @@ kernel_build(
     ] + _SHUSKY_DTBOS,
     base_kernel = select({
         "//private/google-modules/soc/gs:gki_aosp": "//aosp:kernel_aarch64_download_or_build",
-        "//private/google-modules/soc/gs:gki_aosp_staging": ":shusky_gki",
+        "//private/google-modules/soc/gs:gki_aosp_staging": "//aosp-staging:kernel_aarch64_download_or_build",
     }),
     build_config = ":device_build_config",
     collect_unstripped_modules = True,
@@ -489,7 +418,7 @@ kernel_images(
     name = "zuma_shusky_images",
     base_kernel_images = select({
         "//private/google-modules/soc/gs:gki_aosp": "//aosp:kernel_aarch64_images_download_or_build",
-        "//private/google-modules/soc/gs:gki_aosp_staging": ":shusky_gki_images",
+        "//private/google-modules/soc/gs:gki_aosp_staging": "//aosp-staging:kernel_aarch64_images_download_or_build",
     }),
     boot_image_outs = ["dtb.img"],
     build_boot = False,
@@ -568,10 +497,9 @@ _zuma_shusky_dist_targets = [
         "//aosp:kernel_aarch64_headers_download_or_build",
     ],
     "//private/google-modules/soc/gs:gki_aosp_staging": [
-        "shusky_gki",
-        "shusky_gki_headers",
         "//aosp-staging:android/abi_gki_aarch64_pixel",
-        "//build/kernel:gki_certification_tools",
+        "//aosp-staging:kernel_aarch64_download_or_build",
+        "//aosp-staging:kernel_aarch64_headers_download_or_build",
     ],
 })
 
@@ -580,7 +508,7 @@ extracted_system_dlkm(
     gki_modules = [paths.basename(m) for m in _GKI_MODULES],
     images = select({
         "//private/google-modules/soc/gs:gki_aosp": "//aosp:kernel_aarch64_images_download_or_build",
-        "//private/google-modules/soc/gs:gki_aosp_staging": ":shusky_gki_images",
+        "//private/google-modules/soc/gs:gki_aosp_staging": "//aosp-staging:kernel_aarch64_images_download_or_build",
     }),
 )
 
