@@ -54,10 +54,6 @@
 	gpio = <&s2mpg15_gpio 8 GPIO_ACTIVE_HIGH>;
 };
 
-&s_ldo8_reg {
-	/delete-property/ regulator-always-on;
-};
-
 &drmdecon1 {
 	status = "okay";
 };

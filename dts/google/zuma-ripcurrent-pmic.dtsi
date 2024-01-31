@@ -26,7 +26,6 @@
 };
 
 &s_ldo8_reg {
-	regulator-always-on;
 	regulator-initial-mode = <SEC_OPMODE_ON>;
 	schematic-name = "L8S_DISP2_VCI";
 	subsys-name = "Display";
