@@ -133,7 +133,7 @@
 						gpu = <649000>;
 						tpu = <627000>;
 					};
-					smpl_gm {
+					smpl_warn {
 						cpucl0 = <1704000>;
 						cpucl1 = <1945000>;
 						cpucl2 = <2294000>;
