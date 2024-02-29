@@ -327,8 +327,8 @@ static const struct drm_dsc_config fhd_pps_config = {
 #define HK3_TE_USEC_60HZ_NS 546
 #define HK3_TE_PERIOD_DELTA_TOLERANCE_USEC 2000
 
-#define MIPI_DSI_FREQ_DEFAULT 1368
-#define MIPI_DSI_FREQ_ALTERNATIVE 1346
+#define MIPI_DSI_FREQ_MBPS_DEFAULT 1368
+#define MIPI_DSI_FREQ_MBPS_ALTERNATIVE 1346
 
 #define PROJECT "HK3"
 
@@ -1786,7 +1786,7 @@ static int hk3_enable(struct drm_panel *panel)
 			hk3_negative_field_setting(ctx);
 
 		spanel->is_pixel_off = false;
-		ctx->dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT;
+		ctx->dsi_hs_clk_mbps = MIPI_DSI_FREQ_MBPS_DEFAULT;
 	}
 
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
@@ -2193,29 +2193,30 @@ static void hk3_pre_update_ffc(struct exynos_panel *ctx)
 	DPU_ATRACE_END(__func__);
 }
 
-static void hk3_update_ffc(struct exynos_panel *ctx, unsigned int hs_clk)
+static void hk3_update_ffc(struct exynos_panel *ctx, unsigned int hs_clk_mbps)
 {
-	dev_dbg(ctx->dev, "%s: hs_clk: current=%d, target=%d\n",
-		__func__, ctx->dsi_hs_clk, hs_clk);
+	dev_dbg(ctx->dev, "%s: hs_clk_mbps: current=%d, target=%d\n",
+		__func__, ctx->dsi_hs_clk_mbps, hs_clk_mbps);
 
 	DPU_ATRACE_BEGIN(__func__);
 
-	if (hs_clk != MIPI_DSI_FREQ_DEFAULT && hs_clk != MIPI_DSI_FREQ_ALTERNATIVE) {
-		dev_warn(ctx->dev, "%s: invalid hs_clk=%d for FFC\n", __func__, hs_clk);
-	} else if (ctx->dsi_hs_clk != hs_clk) {
-		dev_info(ctx->dev, "%s: updating for hs_clk=%d\n", __func__, hs_clk);
-		ctx->dsi_hs_clk = hs_clk;
+	if (hs_clk_mbps != MIPI_DSI_FREQ_MBPS_DEFAULT &&
+	    hs_clk_mbps != MIPI_DSI_FREQ_MBPS_ALTERNATIVE) {
+		dev_warn(ctx->dev, "%s: invalid hs_clk_mbps=%d for FFC\n", __func__, hs_clk_mbps);
+	} else if (ctx->dsi_hs_clk_mbps != hs_clk_mbps) {
+		dev_info(ctx->dev, "%s: updating for hs_clk_mbps=%d\n", __func__, hs_clk_mbps);
+		ctx->dsi_hs_clk_mbps = hs_clk_mbps;
 
 		/* Update FFC */
 		EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x37, 0xC5);
-		if (hs_clk == MIPI_DSI_FREQ_DEFAULT)
+		if (hs_clk_mbps == MIPI_DSI_FREQ_MBPS_DEFAULT)
 			EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x10, 0x50, 0x05, 0x4D, 0x31, 0x40, 0x00,
 						0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
 						0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
 						0x40, 0x00, 0x40, 0x00, 0x4D, 0x31, 0x40, 0x00,
 						0x40, 0x00, 0x40, 0x00);
-		else /* MIPI_DSI_FREQ_ALTERNATIVE */
+		else /* MIPI_DSI_FREQ_MBPS_ALTERNATIVE */
 			EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x10, 0x50, 0x05, 0x4E, 0x74, 0x40, 0x00,
 						0x40, 0x00, 0x40, 0x00, 0x4E, 0x74, 0x40, 0x00,
 						0x40, 0x00, 0x40, 0x00, 0x4E, 0x74, 0x40, 0x00,
@@ -3011,7 +3012,7 @@ const struct exynos_panel_desc google_hk3 = {
 	.lhbm_effective_delay_frames = 1,
 	.lhbm_post_cmd_delay_frames = 1,
 	.normal_mode_work_delay_ms = 30000,
-	.default_dsi_hs_clk = MIPI_DSI_FREQ_DEFAULT,
+	.default_dsi_hs_clk_mbps = MIPI_DSI_FREQ_MBPS_DEFAULT,
 	.reset_timing_ms = {1, 1, 5},
 	.reg_ctrl_enable = {
 		{PANEL_REG_ID_VDDI, 1},
