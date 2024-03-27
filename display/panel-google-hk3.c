@@ -18,7 +18,6 @@
 #include <video/mipi_display.h>
 
 #include "trace/dpu_trace.h"
-#include "trace/panel_trace.h"
 #include "panel/panel-samsung-drv.h"
 
 /**
