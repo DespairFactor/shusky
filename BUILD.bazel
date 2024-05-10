@@ -140,6 +140,7 @@ kernel_build(
     ]) + [
         # keep sorted
         "//private/devices/google/common:debug_build_configs",
+        "//private/devices/google/zuma:build.config.zuma",
         "//private/google-modules/bms/misc:bms-misc.kconfig",
         "//private/google-modules/display/common:common.kconfig",
         "//private/google-modules/display/samsung:display.samsung.kconfig",
@@ -148,7 +149,6 @@ kernel_build(
         "//private/google-modules/power/reset:reset.kconfig",
         "//private/google-modules/radio/samsung/s5300:cpif.kconfig",
         "//private/google-modules/radio/samsung/s5400:cpif.kconfig",
-        "//private/google-modules/soc/gs:build.config.zuma",
         "//private/google-modules/soc/gs:gs_soc.kconfig",
         "//private/google-modules/touch/common:touch.common.kconfig",
         "//private/google-modules/touch/fts/ftm5:ftm5.kconfig",
@@ -386,14 +386,14 @@ hermetic_genrule(
     name = "vendor_kernel_boot_modules.shusky-cat",
     srcs = [
         "vendor_kernel_boot_modules.shusky",
-        "//private/google-modules/soc/gs:vendor_kernel_boot_modules.zuma",
+        "//private/devices/google/zuma:vendor_kernel_boot_modules.zuma",
     ],
     outs = [
         "vendor_kernel_boot_modules.concat",
     ],
     cmd = """
         cat $(location vendor_kernel_boot_modules.shusky) \\
-            $(location //private/google-modules/soc/gs:vendor_kernel_boot_modules.zuma) \\
+            $(location //private/devices/google/zuma:vendor_kernel_boot_modules.zuma) \\
             > $@
     """,
 )
@@ -427,12 +427,12 @@ kernel_images(
     # Keep the following in sync with build.config.shusky:
     modules_list = ":vendor_kernel_boot_modules.shusky-cat",
     system_dlkm_modules_list = ":system_dlkm_modules_list",
-    system_dlkm_props = "//private/google-modules/soc/gs:system_dlkm.props.zuma",
+    system_dlkm_props = "//private/devices/google/zuma:system_dlkm.props.zuma",
     vendor_dlkm_etc_files = ["//private/devices/google/shusky:insmod_cfgs"],
-    vendor_dlkm_modules_blocklist = "//private/google-modules/soc/gs:vendor_dlkm.blocklist.zuma",
+    vendor_dlkm_modules_blocklist = "//private/devices/google/zuma:vendor_dlkm.blocklist.zuma",
     # No MODULES_BLOCKLIST
-    vendor_dlkm_modules_list = "//private/google-modules/soc/gs:vendor_dlkm_modules.zuma",
-    vendor_dlkm_props = "//private/google-modules/soc/gs:vendor_dlkm.props.zuma",
+    vendor_dlkm_modules_list = "//private/devices/google/zuma:vendor_dlkm_modules.zuma",
+    vendor_dlkm_props = "//private/devices/google/zuma:vendor_dlkm.props.zuma",
     deps = [
         # Keep the following in sync with (vendor|system)_dlkm.props.zuma:
         # selinux_fc

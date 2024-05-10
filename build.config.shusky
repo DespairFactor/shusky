@@ -7,7 +7,7 @@ KERNEL_DIR=${GKI_KERNEL_DIR:-"aosp"}
 
 # These just need to be relative to the ROOT_DIR
 FRAGMENT_CONFIG=${DEVICE_DIR}/shusky_gki.fragment
-. ${ROOT_DIR}/${SOC_DIR}/build.config.zuma
+. ${ROOT_DIR}/private/devices/google/zuma/build.config.zuma
 
 DTC_INCLUDE=${ROOT_DIR}/${SOC_DIR}/include/dtc
 MKDTIMG_FLAGS="--page_size=4096 --id=/:board_id --rev=/:board_rev"
