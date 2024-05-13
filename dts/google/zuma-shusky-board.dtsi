@@ -5,8 +5,8 @@
  * Copyright 2022 Google LLC
  */
 
-#include "google-dts-base/zuma-board.dtsi"
-#include "google-dts-base/zuma-board-gps.dtsi"
+#include "google-dts-zuma/zuma-board.dtsi"
+#include "google-dts-zuma/zuma-board-gps.dtsi"
 
 #include "zuma-ripcurrent-camera-pmic.dtsi"
 #include "zuma-shusky-usb.dtsi"
@@ -18,4 +18,4 @@
 #include "zuma-shusky-pcie.dtsi"
 #include "zuma-shusky-typec.dtsi"
 #include "zuma-shusky-dma-heap.dtsi"
-#include "google-dts-base/gs101-cp-s5200-thermal-zone.dtsi"
+#include "google-dts-zuma/gs101-cp-s5200-thermal-zone.dtsi"
