@@ -5,19 +5,17 @@ load("//build/kernel/kleaf:kernel.bzl", "kernel_dtstree")
 kernel_dtstree(
     name = "shusky.dt",
     srcs = glob([
-        "Makefile",
-        "google/Makefile",
         "google/*.dtsi",
         "google/*.dts",
-        "google/google-dts-base",
-        "google/google-dts-base/Makefile",
-        "google/google-dts-base/*.dts",
-        "google/google-dts-base/*.dtsi",
-        "google/google-dts-base/devices/ripcurrent",
-        "google/google-dts-base/devices/ripcurrent/Makefile",
-        "google/google-dts-base/devices/ripcurrent/*.dts",
-        "google/google-dts-base/devices/ripcurrent/*.dtsi",
+        "google/google-dts-zuma/*.dts",
+        "google/google-dts-zuma/*.dtsi",
+        "google/google-dts-zuma/google-dts-ripcurrent/*.dts",
+        "google/google-dts-zuma/google-dts-ripcurrent/*.dtsi",
     ]) + [
+        "Makefile",
+        "google/Makefile",
+        "google/google-dts-zuma/Makefile",
+        "google/google-dts-zuma/google-dts-ripcurrent/Makefile",
         "//private/google-modules/soc/gs:gs.dt-bindings",
     ],
     visibility = [

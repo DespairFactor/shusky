@@ -7,7 +7,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/irq.h>
-#include "google-dts-base/zuma-battery.dtsi"
+#include "google-dts-zuma/zuma-battery.dtsi"
 
 &pinctrl_0 {
 /* [MAX77759: FG_INTB] > FG_INT_L > [XEINT_21 : SC59845XWE] */
@@ -59,7 +59,7 @@
 	#size-cells = <0>;
 	status = "okay";
 	clock-frequency = <950000>;
-#include "google-dts-base/zuma-max777xx.dtsi"
+#include "google-dts-zuma/zuma-max777xx.dtsi"
 };
 
 &max77759_fg {

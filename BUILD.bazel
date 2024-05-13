@@ -83,9 +83,9 @@ _SHUSKY_DTBOS = [
     "google/zuma-shiba-dvt1.dtbo",
     "google/zuma-shiba-pvt1.dtbo",
     "google/zuma-shiba-mp.dtbo",
-    "google/google-dts-base/zuma-dpm-eng.dtbo",
-    "google/google-dts-base/zuma-dpm-user.dtbo",
-    "google/google-dts-base/zuma-dpm-userdebug.dtbo",
+    "google/google-dts-zuma/zuma-dpm-eng.dtbo",
+    "google/google-dts-zuma/zuma-dpm-user.dtbo",
+    "google/google-dts-zuma/zuma-dpm-userdebug.dtbo",
 ]
 
 kernel_module_group(
@@ -160,7 +160,7 @@ kernel_build(
         "//private/devices/google/common:gki_aosp_staging": ["//aosp-staging:kernel_aarch64_sources"],
     }),
     outs = [
-        "google/google-dts-base/zuma-{}.dtb".format(soc_rev)
+        "google/google-dts-zuma/zuma-{}.dtb".format(soc_rev)
         for soc_rev in _SOC_REVS
     ] + _SHUSKY_DTBOS,
     base_kernel = select({

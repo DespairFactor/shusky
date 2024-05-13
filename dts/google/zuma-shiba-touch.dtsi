@@ -6,7 +6,7 @@
  *
  */
 
-#include "google-dts-base/zuma-common-touch.dtsi"
+#include "google-dts-zuma/zuma-common-touch.dtsi"
 
 &spi_20 {
 	status = "okay";
